@@ -1,20 +1,12 @@
-const _ = require('lodash');
 const d3 = require('d3');
 const d3Sankey = require('d3-sankey').sankey;
 
-const energyData = require('./data/us-energy-consumption-2015-sankey');
+const energyDatasets = require('./data/us-energy-consumption-parser');
 
 require('./style/energySankey.less');
 
 // preprocess:
-let energy = {
-  nodes: energyData.nodes,
-  links: energyData.links.map(l => {
-    let newL = _.clone(l);
-    newL.value = newL.value.TWh;
-    return newL;
-  }),
-};
+let energy = energyDatasets.getConsumption2014('TWh');
 
 window.energy = energy;
 

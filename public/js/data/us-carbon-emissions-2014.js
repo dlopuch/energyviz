@@ -1,213 +1,181 @@
 /**
- * 2015 US Energy Consumption Sankey Flow Diagram by Lawrence Livermore National Laboratory
- * Transcribed from https://flowcharts.llnl.gov/content/assets/images/energy/us/Energy_US_2015.png
+ * 2014 Estimated US Carbon Emissions Sankey Flow Diagram by Lawrence Livermore National Laboratory
+ * Transcribed from https://flowcharts.llnl.gov/commodities/carbon
  *
  * Data Source: Lawrence Livermore National Laboratory and the Department of Energy
  */
 
 /** Links in the Sankey diagram */
 const LINKS = [
-  // All values in units of Quads as transcribed from
-  //   https://flowcharts.llnl.gov/content/assets/images/energy/us/Energy_US_2015.png
+  // All values in units of Million Metric Tons as transcribed from
+  //   https://flowcharts.llnl.gov/commodities/carbon
   {
     source: 'solar',
     target: 'electricity',
-    value: 0.25,
+    value: 0,
   },
   {
     source: 'solar',
     target: 'residential',
-    value: 0.28,
+    value: 0,
   },
   {
     source: 'nuclear',
     target: 'electricity',
-    value: 8.34,
+    value: 0,
   },
   {
     source: 'hydro',
     target: 'electricity',
-    value: 2.38,
+    value: 0,
   },
   {
     source: 'hydro',
     target: 'industrial',
-    value: 0.01,
+    value: 0,
   },
   {
     source: 'wind',
     target: 'electricity',
-    value: 1.81,
+    value: 0,
   },
   {
     source: 'geothermal',
     target: 'electricity',
-    value: 0.16,
+    value: 0.400,
   },
   {
     source: 'geothermal',
     target: 'residential',
-    value: 0.04,
+    value: 0,
   },
   {
     source: 'geothermal',
     target: 'commercial',
-    value: 0.02,
+    value: 0,
   },
   {
     source: 'naturalGas',
     target: 'electricity',
-    value: 9.99,
+    value: 444,
   },
   {
     source: 'naturalGas',
     target: 'residential',
-    value: 4.75,
+    value: 276,
   },
   {
     source: 'naturalGas',
     target: 'commercial',
-    value: 3.3,
+    value: 188,
   },
   {
     source: 'naturalGas',
     target: 'industrial',
-    value: 9.36,
+    value: 479,
   },
   {
     source: 'naturalGas',
     target: 'transportation',
-    value: 0.92,
+    value: 50.0,
   },
   {
     source: 'coal',
     target: 'electricity',
-    value: 14.3,
+    value: 1560,
   },
   {
     source: 'coal',
     target: 'commercial',
-    value: 0.06,
+    value: 4.43,
   },
   {
     source: 'coal',
     target: 'industrial',
-    value: 1.41,
+    value: 141,
   },
   {
     source: 'biomass',
     target: 'electricity',
-    value: 0.52,
+    value: 0,
+    // Note: The current generation of biofuels are not carbon neutral -- with full lifecycle considerations, it takes
+    // net carbon to grow them. LLNL addresses this: "Combustion of biologically derived fuels is assumed to have zero
+    // net carbon emissions - the lifecycle emissions associated with producing biofuels are included in commercial
+    // and industrial emissions."
   },
   {
     source: 'biomass',
     target: 'residential',
-    value: 0.45,
+    value: 0,
+    // See note above
   },
   {
     source: 'biomass',
     target: 'commercial',
-    value: 0.13,
+    value: 0,
+    // See note above
   },
   {
     source: 'biomass',
     target: 'industrial',
-    value: 2.28,
+    value: 0,
+    // See note above
   },
   {
     source: 'biomass',
     target: 'transportation',
-    value: 1.35,
+    value: 0,
+    // See note above
   },
   {
     source: 'petroleum',
     target: 'electricity',
-    value: 0.28,
+    value: 36.9,
   },
   {
     source: 'petroleum',
     target: 'residential',
-    value: 0.98,
+    value: 64.9,
   },
   {
     source: 'petroleum',
     target: 'commercial',
-    value: 0.56,
+    value: 39.6,
   },
   {
     source: 'petroleum',
     target: 'industrial',
-    value: 8.2,
+    value: 342,
   },
   {
     source: 'petroleum',
     target: 'transportation',
-    value: 25.4,
+    value: 1780,
   },
   {
     source: 'electricity',
-    target: 'residential',
-    value: 4.78,
-  },
-  {
-    source: 'electricity',
-    target: 'commercial',
-    value: 4.63,
-  },
-  {
-    source: 'electricity',
-    target: 'industrial',
-    value: 3.27,
-  },
-  {
-    source: 'electricity',
-    target: 'transportation',
-    value: 0.03,
-  },
-  {
-    source: 'electricity',
-    target: 'rejectedEnergy',
-    value: 25.4,
+    target: 'carbonEmissions',
+    value: 2040,
   },
   {
     source: 'residential',
-    target: 'rejectedEnergy',
-    value: 3.95,
-  },
-  {
-    source: 'residential',
-    target: 'energyServices',
-    value: 7.33,
+    target: 'carbonEmissions',
+    value: 341,
   },
   {
     source: 'commercial',
-    target: 'rejectedEnergy',
-    value: 3.05,
-  },
-  {
-    source: 'commercial',
-    target: 'energyServices',
-    value: 5.66,
+    target: 'carbonEmissions',
+    value: 232,
   },
   {
     source: 'industrial',
-    target: 'rejectedEnergy',
-    value: 4.91,
-  },
-  {
-    source: 'industrial',
-    target: 'energyServices',
-    value: 19.6,
+    target: 'carbonEmissions',
+    value: 962,
   },
   {
     source: 'transportation',
-    target: 'rejectedEnergy',
-    value: 21.9,
-  },
-  {
-    source: 'transportation',
-    target: 'energyServices',
-    value: 5.81,
+    target: 'carbonEmissions',
+    value: 1830,
   },
 ];
 

@@ -35,6 +35,8 @@
     "webpack": "^1.13.2"
   },
   "dependencies": {
+    "d3": "^4.2.6",
+    "d3-sankey": "^0.4.1",
     "react": "^15.3.2",
     "react-dom": "^15.3.2"
   }

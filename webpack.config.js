@@ -28,7 +28,6 @@ module.exports = {
   context: APP_ROOT,
   entry: {
     app: 'main.js',
-    alternateApp: 'main-alternate.js' // for demo only, remove or replace with different entry file if multiple entry files.
   },
   output: {
     path: './public/dist/',

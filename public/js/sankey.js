@@ -1,7 +1,7 @@
 const d3 = require('d3');
 const d3Sankey = require('d3-sankey').sankey;
 
-const energyDatasets = require('./data/us-energy-consumption-parser');
+const energyDatasets = require('./data/us-energy-consumption-emissions-parser');
 
 require('./style/energySankey.less');
 

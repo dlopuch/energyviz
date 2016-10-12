@@ -2,20 +2,29 @@ const _ = require('lodash');
 const sankeyNodes = require('./llnl-sankey-nodes');
 const energy2014 = require('./us-energy-consumption-2014-sankey');
 const energy2015 = require('./us-energy-consumption-2015-sankey');
+const emissions2014 = require('./us-carbon-emissions-2014');
 
 function parseSankeyDataset(sankeyData, nodeSankeyClassFilter) {
   let nodes = _.cloneDeep(sankeyNodes);
 
-  // apply energy conversions
-  sankeyData.links.forEach(l => {
-    l.value = {
-      quads: l.value,
+  if (nodeSankeyClassFilter === 'consumption') {
+    // apply energy conversions
+    sankeyData.links.forEach(l => {
+      l.value = {
+        quads: l.value,
 
-      // conversions from https://en.wikipedia.org/wiki/Quad_(unit)
-      TWh: l.value * 293.07,
-      MTOE: l.value * 25.2, // Million Tonnes of Oil Equivalent
-    };
-  });
+        // conversions from https://en.wikipedia.org/wiki/Quad_(unit)
+        TWh: l.value * 293.07,
+        MTOE: l.value * 25.2, // Million Tonnes of Oil Equivalent
+      };
+    });
+  } else if (nodeSankeyClassFilter === 'emissions') {
+    sankeyData.links.forEach(l => {
+      l.value = {
+        MMT: l.value, // Million Metric Tons
+      };
+    });
+  }
 
 
   let nodesById = {};
@@ -96,8 +105,14 @@ function parseSankeyDataset(sankeyData, nodeSankeyClassFilter) {
 let parsedData = {
   consumption2014: parseSankeyDataset(energy2014, 'consumption'),
   consumption2015: parseSankeyDataset(energy2015, 'consumption'),
+  emissions2014: parseSankeyDataset(emissions2014, 'emissions'),
 };
 
+/**
+ * Produces a getter that clones a dataset and prepares the links format for d3 sankey
+ * @param dataset
+ * @return {function(string)} Getter that transforms dataset into d3-sankey-ready
+ */
 function sankifyFactory(dataset) {
   return function sankify(whichEnergyUnits) {
     return {
@@ -115,11 +130,17 @@ module.exports = {
   // Use these getters to get appropriate sankified consumption data.
   // Data returned is cloned so a visualization can augment it as needed
   // (ie getConsumption2014('TWh') !== getConsumption2014('TWh'))
-  // Getters takes one param -- the energy unit.  Can be one of: "quads", "TWh", "MTOE"
+
+  // Consumption getters takes one param -- the energy unit.  Can be one of: "quads", "TWh", "MTOE"
   getConsumption2014: sankifyFactory(parsedData.consumption2014),
   getConsumption2015: sankifyFactory(parsedData.consumption2015),
+
+  // Consumption takes one param -- the CO2 unit.  Can be one of: "MMT" (Million Metric Tons)
+  getEmissions2014: sankifyFactory(parsedData.emissions2014),
+
 
   // Raw data is available, but you should use the parser ones
   _consumption2014: parsedData.consumption2014,
   _consumption2015: parsedData.consumption2015,
+  _emissions2014: parsedData.emissions2014,
 };

@@ -33,16 +33,26 @@ module.exports = function() {
     nodePadding: 5,
     nodeWidth: 10,
   });
+  let offscreenY = height + margin.top + margin.bottom;
 
-  let layoutData = multiSankeyLayout.calculateLayout();
+  let allLayoutData = multiSankeyLayout.calculateLayout();
 
   window.msLayout = multiSankeyLayout;
-  window.msLayoutData = layoutData;
+  window.msLayoutData = allLayoutData;
 
-  layoutData = {
-    links: layoutData.energyLayout.links.concat(layoutData.emissionsLayout.analysisLinks),
-    nodes: layoutData.energyLayout.nodes.concat(layoutData.emissionsLayout.analysisNodes),
+  // Editor's Choice: don't show 'energy services', only waste energy
+  allLayoutData.energyLayout.links = allLayoutData.energyLayout.links.filter(l => l.target.id !== 'energyServices');
+  allLayoutData.energyLayout.nodes = allLayoutData.energyLayout.nodes.filter(n => n.id !== 'energyServices');
+
+  let layoutData = {
+    links: allLayoutData.emissionsLayout.analysisLinks.concat(allLayoutData.energyLayout.links),
+    nodes: allLayoutData.emissionsLayout.analysisNodes.concat(allLayoutData.energyLayout.nodes),
   };
+
+  let energyAnalysisVisible = true;
+  let emissionsAnalysisVisible = false;
+  let energyAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'consumption';
+  let emissionsAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'emissions';
 
   let linkPathGenerator = MultiSankeyLayout.makeLinkPathGenerator();
 
@@ -77,8 +87,44 @@ module.exports = function() {
     .filter(d => d.x < width / 2)
     .attr('text-anchor', 'start');
 
+  /**
+   * When moving nodes off and onscreen, helpful to save their original positions.
+   * @param n
+   */
+  function saveNodeOrigY(n) {
+    // but only if the node is currently on-screen.  Otherwise, it's _origY is already saved.
+    if (n.y >= 0 && n.y < height) {
+      n._origY = n.y;
+    }
+  }
+
+  let energyAnalysisLinksSel = links.filter(l => energyAnalysisNodeFilter(l.target));
+  let emissionsAnalysisLinksSel = links.filter(l => emissionsAnalysisNodeFilter(l.target));
+  let energyAnalysisNodesSel = nodes.filter(energyAnalysisNodeFilter);
+  let emissionsAnalysisNodesSel = nodes.filter(emissionsAnalysisNodeFilter);
+
 
   function _updateLayout(animate) {
+    // Pre-positioning: We want the 'analysis' nodes (energy and emissions sinks) to initially be offscreen.  Shown with
+    // show/hide functions
+    if (!emissionsAnalysisVisible) {
+      emissionsAnalysisNodesSel.each(n => {
+        saveNodeOrigY(n);
+        n.y = -margin.top - (height - n.y);
+      });
+    }
+    if (!energyAnalysisVisible) {
+      energyAnalysisNodesSel.each(n => {
+        saveNodeOrigY(n);
+        n.y = offscreenY + n.y;
+      });
+    }
+    emissionsAnalysisNodesSel.style('opacity', emissionsAnalysisVisible ? 1 : 0);
+    emissionsAnalysisLinksSel.style('opacity', emissionsAnalysisVisible ? 1 : 0);
+    energyAnalysisNodesSel.style('opacity', energyAnalysisVisible ? 1 : 0);
+    energyAnalysisLinksSel.style('opacity', energyAnalysisVisible ? 1 : 0);
+
+
     if (animate) {
       links.transition()
         .attr('d', linkPathGenerator)
@@ -86,18 +132,15 @@ module.exports = function() {
         // So we make our own interpolator for the transition.
         .styleTween('stroke-width', function(l) {
           return d3.interpolateNumber(parseFloat(d3.select(this).style('stroke-width')) || 0, Math.max(2, l.dy));
-        })
-        .style('opacity', 1);
+        });
     } else {
       links
         .attr('d', linkPathGenerator)
-        .style('stroke-width', d => Math.max(2, d.dy))
-        .style('opacity', 1);
+        .style('stroke-width', d => Math.max(2, d.dy));
     }
 
     (animate ? nodes.transition() : nodes)
-      .attr('transform', d => `translate(${d.x},${d.y})`)
-      .style('opacity', 1);
+      .attr('transform', d => `translate(${d.x},${d.y})`);
 
     (animate ? nodeRects.transition() : nodeRects)
       .attr('height', d => d.dy)
@@ -131,14 +174,14 @@ module.exports = function() {
    * data object*.  Unlike normal d3 animations, we're changing the data object on each animation frame and then
    * drawing the position of both the node and the link off the changed data object.
    */
-  let energySinkNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'consumption';
-  function hideNodesAndLinks(nodeFilter, linkFilter) {
-    let offscreenY = height + margin.top + margin.bottom;
+  function hideNodesAndLinks(hideUp, nodeFilter, linkFilter) {
     nodes.filter(nodeFilter).transition()
       .tween('hideNodesAndLinks', function(n) {
         let nodeEl = this;
-        let newYInterpolator = d3.interpolateNumber(n.y, offscreenY + n.y);
-        n._origY = n.y;
+        let newYInterpolator = d3.interpolateNumber(n.y, hideUp ? -margin.top - (height - n.y) : offscreenY + n.y);
+
+        saveNodeOrigY(n);
+
         return t => {
           // Need to change the data so the relative-position link path generator can draw link to follow this
           n.y = newYInterpolator(t);
@@ -190,7 +233,19 @@ module.exports = function() {
     updateLayout(true);
     is2014 = !is2014;
   };
-  window.hideSinks = () => hideNodesAndLinks(energySinkNodeFilter);
-  window.showSinks = () => showNodesAndLinks(energySinkNodeFilter);
-  console.log('Yo! try hitting toggleYearAndUpdate(), hideSinks(), or showSinks() to see examples of transitions!');
+  window.showEmissions = () => {
+    hideNodesAndLinks(false, energyAnalysisNodeFilter);
+    energyAnalysisVisible = false;
+
+    showNodesAndLinks(emissionsAnalysisNodeFilter);
+    emissionsAnalysisVisible = true;
+  };
+  window.showEnergy = () => {
+    hideNodesAndLinks(true, emissionsAnalysisNodeFilter);
+    emissionsAnalysisVisible = false;
+
+    showNodesAndLinks(energyAnalysisNodeFilter);
+    energyAnalysisVisible = true;
+  };
+  console.log('Yo! try hitting toggleYearAndUpdate(), showEmissions(), or showEnergy() to see examples of transitions!');
 };

@@ -23,6 +23,7 @@ module.exports = class LlnlMultiSankeyLayout {
     });
 
     this._energyNodeScaleFactor = Infinity;
+    this._emissionsScaleFactor = Infinity;
   }
 
   static makeLinkPathGenerator() {
@@ -152,9 +153,10 @@ module.exports = class LlnlMultiSankeyLayout {
     // all the consumption nodes, we're going to see what's the maximum px/MMT each consumption node allows,
     // where we assume the node's px is set from the energy calculations.
     let consumerNodes = emissionsDataNodes.filter(n => n.data.category === 'consumer'); // elec, res, com, ind, trans
-    this._emissionsScaleFactor = _(consumerNodes)
-      .map(n => n.dy / n.values[EMISSIONS_VALUE_KEY])
-      .min();
+    this._emissionsScaleFactor = Math.min(
+      this._emissionsScaleFactor,
+      _(consumerNodes).map(n => n.dy / n.values[EMISSIONS_VALUE_KEY]).min()
+    );
 
     // Figure out thickness of only the analysis links (others won't be shown, and their thickness is from energy)
     let analysisLinks = emissionsData.links.filter(emissionsAnalysisLinksFilter);

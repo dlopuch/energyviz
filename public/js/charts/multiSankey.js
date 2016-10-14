@@ -7,7 +7,7 @@ require('../style/energySankey.less');
 module.exports = function() {
   let margin = {
     top: 10,
-    right: 10,
+    right: 30,
     bottom: 10,
     left: 10,
   };
@@ -49,10 +49,23 @@ module.exports = function() {
     nodes: allLayoutData.emissionsLayout.analysisNodes.concat(allLayoutData.energyLayout.nodes),
   };
 
+
   let energyAnalysisVisible = true;
   let emissionsAnalysisVisible = false;
   let energyAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'consumption';
   let emissionsAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'emissions';
+
+  let emissionsAnalysisNode = allLayoutData.emissionsLayout.analysisNodes[0];
+  let emissionsScale = d3.scaleLinear()
+    .domain([0, emissionsAnalysisNode.values.emissions])
+    .range([0, emissionsAnalysisNode.dy])
+    .nice();
+  let emissionsAxis = d3.axisRight(emissionsScale);
+  let emissionsAxisG = svg.append('g')
+    .classed('emissions-asix', true)
+    .attr('transform', `translate(${width + margin.right + 10}, 0)`)
+    .style('opacity', emissionsAnalysisVisible ? 1 : 0)
+    .call(emissionsAxis);
 
   let linkPathGenerator = MultiSankeyLayout.makeLinkPathGenerator();
 
@@ -103,6 +116,15 @@ module.exports = function() {
   let energyAnalysisNodesSel = nodes.filter(energyAnalysisNodeFilter);
   let emissionsAnalysisNodesSel = nodes.filter(emissionsAnalysisNodeFilter);
 
+  /**
+   * Shows, hides, and rescales the emissions scale
+   * @param {boolean} animate True to animate it
+   */
+  function updateEmissionsScale(animate) {
+    (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 400 : 0) : emissionsAxisG)
+      .attr('transform', `translate(${emissionsAnalysisVisible ? width - 16 : width + margin.right + 10}, 0)`)
+      .style('opacity', emissionsAnalysisVisible ? 1 : 0);
+  }
 
   function _updateLayout(animate) {
     // Pre-positioning: We want the 'analysis' nodes (energy and emissions sinks) to initially be offscreen.  Shown with
@@ -119,7 +141,9 @@ module.exports = function() {
         n.y = offscreenY + n.y;
       });
     }
-    emissionsAnalysisNodesSel.style('opacity', emissionsAnalysisVisible ? 1 : 0);
+    emissionsAnalysisNodesSel
+      .each(n => n.x -= 20) // make room for the scale
+      .style('opacity', emissionsAnalysisVisible ? 1 : 0);
     emissionsAnalysisLinksSel.style('opacity', emissionsAnalysisVisible ? 1 : 0);
     energyAnalysisNodesSel.style('opacity', energyAnalysisVisible ? 1 : 0);
     energyAnalysisLinksSel.style('opacity', energyAnalysisVisible ? 1 : 0);
@@ -151,6 +175,14 @@ module.exports = function() {
       .attr('y', d => d.dy / 2)
       .filter(d => d.x < width / 2)
       .attr('x', d => 6 + d.dx);
+
+
+    // Update the emissions scale
+    emissionsScale
+      .domain([0, emissionsAnalysisNode.values.emissions])
+      .range([0, emissionsAnalysisNode.dy])
+      .nice();
+    updateEmissionsScale(animate);
   }
 
   function updateLayout(animate) {
@@ -239,10 +271,12 @@ module.exports = function() {
 
     showNodesAndLinks(emissionsAnalysisNodeFilter);
     emissionsAnalysisVisible = true;
+    updateEmissionsScale(true);
   };
   window.showEnergy = () => {
     hideNodesAndLinks(true, emissionsAnalysisNodeFilter);
     emissionsAnalysisVisible = false;
+    updateEmissionsScale(true);
 
     showNodesAndLinks(energyAnalysisNodeFilter);
     energyAnalysisVisible = true;

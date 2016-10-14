@@ -35,7 +35,11 @@ module.exports = function() {
   });
   let offscreenY = height + margin.top + margin.bottom;
 
-  let allLayoutData = multiSankeyLayout.calculateLayout();
+  let is2014 = true;
+  let curEnergyAccessor = multiSankeyLayout.llnlSankeyNodes.accessors.energy2014;
+  let curEmissionsAccessor = multiSankeyLayout.llnlSankeyNodes.accessors.emissions2014;
+
+  let allLayoutData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
 
   window.msLayout = multiSankeyLayout;
   window.msLayoutData = allLayoutData;
@@ -186,7 +190,7 @@ module.exports = function() {
   }
 
   function updateLayout(animate) {
-    let newData = multiSankeyLayout.calculateLayout();
+    let newData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
     // no need to d3 datajoin, it updates the data objects in place.  Just run layout against new numbers.
     _updateLayout(animate);
     return newData;
@@ -254,17 +258,20 @@ module.exports = function() {
 
 
   window.updateLayout = updateLayout;
-  let is2014 = true;
+
   window.toggleYearAndUpdate = function toggleYear() {
-    multiSankeyLayout.dataAndControls.setEnergyAccessor(
-      is2014 ?
-        multiSankeyLayout.dataAndControls.accessors.energy2015 :
-        multiSankeyLayout.dataAndControls.accessors.energy2014
-    );
-    console.log(`Now showing ${is2014 ? '2015' : '2014'} data`);
-    updateLayout(true);
     is2014 = !is2014;
+
+    curEnergyAccessor = is2014 ?
+      multiSankeyLayout.llnlSankeyNodes.accessors.energy2014 :
+      multiSankeyLayout.llnlSankeyNodes.accessors.energy2015;
+
+    // TODO: Change emissions accessor once we have a possible model
+
+    console.log(`Now showing ${is2014 ? '2015' : '2014'} energy, emissions stays 2014.`);
+    updateLayout(true);
   };
+
   window.showEmissions = () => {
     hideNodesAndLinks(false, energyAnalysisNodeFilter);
     energyAnalysisVisible = false;

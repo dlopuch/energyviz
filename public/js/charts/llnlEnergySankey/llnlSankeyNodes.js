@@ -5,7 +5,7 @@ const energyNodes = require('../../data/llnl-sankey-nodes');
 const datasets = require('../../data/us-energy-consumption-emissions-parser');
 
 const ACCESSORS = {
-  emissions: link => _.get(link, 'data.emissions2014.value.MMT') || 0,
+  emissions2014: link => _.get(link, 'data.emissions2014.value.MMT') || 0,
   energy2014: link => _.get(link, 'data.energy2014.value.TWh') || 0,
   energy2015: link => _.get(link, 'data.energy2015.value.TWh') || 0,
 };
@@ -23,36 +23,10 @@ class LlnlSankeyNode extends core.SankeyNode {
 class LlnlSankeyLink extends core.SankeyLink {
   /**
    * @param {object} data Underlying node data
-   * @param {function(LlnlSankeyLink)} energyAccessor Accessor that turn a connected link into an energy value
-   * @param {function(LlnlSankeyLink)} emissionsAccessor Accessor that turn a connected link into an energy value
    */
-  constructor(data, energyAccessor, emissionsAccessor) {
+  constructor(data) {
     super(data);
     this.id = data.id;
-    this.energyAccessor(energyAccessor || null);
-    this.emissionsAccessor(emissionsAccessor || null);
-  }
-
-  /** Get or set the energyAccessor */
-  energyAccessor(energyAccessor) {
-    if (!arguments.length) return this._energyAccessor; // eslint-disable-line prefer-rest-params
-    this._energyAccessor = energyAccessor;
-    return this;
-  }
-
-  /** Get or set the emissionsAccessor */
-  emissionsAccessor(emissionsAccessor) {
-    if (!arguments.length) return this._emissionsAccessor; // eslint-disable-line prefer-rest-params
-    this._emissionsAccessor = emissionsAccessor;
-    return this;
-  }
-
-  getLinkEnergy() {
-    return this._energyAccessor(this);
-  }
-
-  getLinkEmissions() {
-    return this._emissionsAccessor(this);
   }
 }
 
@@ -103,9 +77,7 @@ module.exports = function getNodeSet() {
         emissions2014,
         energy2014,
         energy2015,
-      },
-      ACCESSORS.energy2014,
-      ACCESSORS.emissions
+      }
     );
   });
 
@@ -113,11 +85,6 @@ module.exports = function getNodeSet() {
     nodes,
     links,
 
-    // Different dataset options for nodes
     accessors: _.clone(ACCESSORS),
-
-    // Controls for this set (how the nodes report their values)
-    setEnergyAccessor: (energyAccessor) => links.forEach(n => n.energyAccessor(energyAccessor)),
-    setEmissionsAccessor: (emissionsAccessor) => links.forEach(n => n.emissionsAccessor(emissionsAccessor)),
   };
 };

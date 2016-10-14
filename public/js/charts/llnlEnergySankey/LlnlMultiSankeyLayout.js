@@ -31,12 +31,14 @@ module.exports = class LlnlMultiSankeyLayout {
 
     function link(d) {
       let x0 = d.source.x + d.source.dx;
+      let y0 = d.source.y + d.sy;
+
       let x1 = d.target.x;
+      let y1 = d.target.y + d.ty;
+
       let xi = d3.interpolateNumber(x0, x1);
       let x2 = xi(curvature);
       let x3 = xi(1 - curvature);
-      let y0 = d.sy;
-      let y1 = d.ty;
       return `
         M${x0},${y0}
         C${x2},${y0}
@@ -104,15 +106,13 @@ module.exports = class LlnlMultiSankeyLayout {
 
 
         // Now calculate positions of incoming and outbound links
-        let ty = node.y;
+        let ty = 0;
         node.inboundLinks.filter(energyLinksFilter).forEach(l => {
-          l.tx = node.x;
           l.ty = ty + l.dy / 2;
           ty += l.dy;
         });
-        let sy = node.y;
+        let sy = 0;
         node.outboundLinks.filter(energyLinksFilter).forEach(l => {
-          l.tx = node.x + node.dx;
           l.sy = sy + l.dy / 2;
           sy += l.dy;
         });

@@ -74,10 +74,19 @@ module.exports = function() {
 
 
   function _updateLayout(animate) {
-    (animate ? link.transition() : link)
-      .attr('d', linkPathGenerator);
-    link
-      .style('stroke-width', d => Math.max(2, d.dy)); // can't be transitioned   : (
+    if (animate) {
+      link.transition()
+        .attr('d', linkPathGenerator)
+        // stroke-width isn't recognized as a transition'able style.  Which is wrong.
+        // So we make our own interpolator for the transition.
+        .styleTween('stroke-width', function(l) {
+          return d3.interpolateNumber(parseFloat(d3.select(this).style('stroke-width')) || 0, Math.max(2, l.dy));
+        });
+    } else {
+      link
+        .attr('d', linkPathGenerator)
+        .style('stroke-width', d => Math.max(2, d.dy));
+    }
 
     (animate ? nodes.transition() : nodes)
       .attr('transform', d => `translate(${d.x},${d.y})`);
@@ -100,7 +109,7 @@ module.exports = function() {
     return newData;
   }
 
-  _updateLayout(false); // skip recalculate layout on first update
+  _updateLayout(false); // skip recalculate layout on first update -- already did it
 
 
   window.updateLayout = updateLayout;

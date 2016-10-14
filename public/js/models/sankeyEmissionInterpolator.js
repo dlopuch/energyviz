@@ -7,53 +7,55 @@
  * thing, efficiency of coal will become far better than predicted by this interpolator.
  */
 
+const _ = require('lodash');
 const energyDatasets = require('../data/us-energy-consumption-emissions-parser');
+const llnlSankeyNodes = require('../data/llnl-sankey-nodes');
 
-const consumption2014 = energyDatasets.getConsumption2014('TWh');
-const emissions2014 = energyDatasets.getEmissions2014('MMT');
-
-
-const sourceTargetTree = {};
-function indexLinks(links, leafNameSpace, objToIndexCreator) {
-  links.forEach(l => {
-    if (!sourceTargetTree[l.sourceId]) {
-      sourceTargetTree[l.sourceId] = {};
-    }
-
-    if (!sourceTargetTree[l.sourceId][l.targetId]) {
-      sourceTargetTree[l.sourceId][l.targetId] = {};
-    }
-
-    sourceTargetTree[l.sourceId][l.targetId][leafNameSpace] = !objToIndexCreator ?
-      l :
-      objToIndexCreator(l, sourceTargetTree[l.sourceId][l.targetId]);
-  });
-}
-
-indexLinks(consumption2014.links, 'consumption');
-indexLinks(emissions2014.links, 'emissions');
-
-// Now do the same traversal but establish CO2/unit energy ratios for all emission-defined links.
-indexLinks(emissions2014.links, 'ratio', (emissionLink, leaves) => {
-  if (leaves.consumption === undefined || leaves.emissions === undefined) {
-    return NaN;
-  }
-  return leaves.emissions.value / leaves.consumption.value;
-});
+let nodesById = _.keyBy(llnlSankeyNodes, 'id');
 
 /**
- * Given a proposed energy link (in TWh), interpolates expected CO2 emissions based on 2014 efficiencies
- * @param {object} energyLinkTWh Must have a .sourceId string, a .targetId string, and a .value number in TWh
- * @return {number} Predicted emissions of CO2 in MMT (Million Metric Tons)
+ * We can only interpolate for links coming from an energy source node.  Emissions from other nodes are aggregates of
+ * all the inputs, so they need to be calculated using a linked model.
  */
-module.exports = function interpolateEmissions(energyLinkTWh) {
-  if (!sourceTargetTree[energyLinkTWh.sourceId]) {
-    throw new Error(`Cannot interpolate energyLink -- source node not recognized. ${JSON.stringify(energyLinkTWh)}`);
-  }
-  if (!sourceTargetTree[energyLinkTWh.sourceId][energyLinkTWh.targetId]) {
-    throw new Error(`Cannot interpolate energyLink -- target node not recognized. ${JSON.stringify(energyLinkTWh)}`);
+let sourceLinksOnlyFilter = l => nodesById[l.sourceId].category === 'source';
+
+let energy2014Links = energyDatasets._consumption2014.links.filter(sourceLinksOnlyFilter).map(_.clone);
+let emissions2014Links = energyDatasets._emissions2014.links.filter(sourceLinksOnlyFilter).map(_.clone);
+
+let linkHasher = l => `${_.get(l, 'source.id') || l.sourceId}__${_.get(l, 'target.id') || l.targetId}`;
+let energy2014LinksById = _.keyBy(energy2014Links, linkHasher);
+let emissions2014LinksById = _.keyBy(emissions2014Links, linkHasher);
+
+/**
+ * Creates a linear interpolation of an energy source link's emissions given its energy.
+ * Linear interpolation is defined using 2014 LLNL energy flowchart emissions and energy production by source, ie
+ *   interpolated emissions = (2014-emissions / 2014-energy) * source-energy
+ *
+ * eg in 2014, natural gas produced 8.37 quads of energy in electricity while producing 444 Million Metric Tons CO2
+ * in that electricity production.  This linear interpolator will interpolate the MMT CO2 for a natural gas-->electricity
+ * link given a function to get the energy produced by that link.
+ *
+ * @param {LlnlSankeyLink} energySourceLink The linked-up (ie went through the engine) sankey link.  Must be of
+ *   category 'source' -- ie a primary producer of energy.
+ * @param {function(LlnlSankeyLink)} getSourceLinkEnergy() Function to pick out energy from a link
+ * @param {string} [energyUnits] Units of energy produced by getSourceLinkEnergy().  Defaults TWh.
+ * @param {string} [emissionsUnits] Units of emissions to spit out.  Defaults to MMT.
+ * @return {number} Interpolated emissions.
+ */
+module.exports = function interpolateEmissions(
+  energySourceLink, getSourceLinkEnergy, energyUnits = 'TWh', emissionsUnits = 'MMT'
+) {
+  let energy2014Link = energy2014LinksById[linkHasher(energySourceLink)];
+  if (!energy2014Link) {
+    throw new Error('Energy source link has unrecognized 2014 energy data');
   }
 
-  // interpolate as: TWh * (CO2/TWh)
-  return energyLinkTWh.value * sourceTargetTree[energyLinkTWh.sourceId][energyLinkTWh.targetId].ratio;
+  let emissions2014Link = emissions2014LinksById[linkHasher(energySourceLink)];
+  if (!emissions2014Link) {
+    throw new Error('Energy source link has unrecognized 2014 emissions data');
+  }
+
+  // interpolated emissions = (2014-emissions / 2014-energy) * source-energy
+  // eg TWh * (CO2/TWh)
+  return (emissions2014Link.value[emissionsUnits] / energy2014Link.value[energyUnits]) * getSourceLinkEnergy(energySourceLink);
 };

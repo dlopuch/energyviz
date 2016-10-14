@@ -18,11 +18,11 @@ const EMISSIONS_ANALYSIS_LINKS_FILTER = l => EMISSIONS_ANALYSIS_NODES_FILTER(l.t
 module.exports = class LlnlMultiSankeyLayout {
   constructor(opts) {
     // Parse all the data and transform it all into appropriate nodes, links, and controls
-    this.llnlSankeyNodes = getNodesAndLinks();
+    this.llnlSankeyPieces = getNodesAndLinks();
 
     this._engine = new sankeyCore.SankeyEngine()
-      .nodes(this.llnlSankeyNodes.nodes)
-      .links(this.llnlSankeyNodes.links)
+      .nodes(this.llnlSankeyPieces.nodes)
+      .links(this.llnlSankeyPieces.links)
       .init(); // links all the nodes together, calculates columns
 
     this.opts = _.defaults(opts, {

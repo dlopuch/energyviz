@@ -36,8 +36,8 @@ module.exports = function() {
   let offscreenY = height + margin.top + margin.bottom;
 
   let is2014 = true;
-  let curEnergyAccessor = multiSankeyLayout.llnlSankeyNodes.accessors.energy2014;
-  let curEmissionsAccessor = multiSankeyLayout.llnlSankeyNodes.accessors.emissions2014;
+  let curEnergyAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.energy2014;
+  let curEmissionsAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014;
 
   let allLayoutData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
 
@@ -263,8 +263,8 @@ module.exports = function() {
     is2014 = !is2014;
 
     curEnergyAccessor = is2014 ?
-      multiSankeyLayout.llnlSankeyNodes.accessors.energy2014 :
-      multiSankeyLayout.llnlSankeyNodes.accessors.energy2015;
+      multiSankeyLayout.llnlSankeyPieces.accessors.energy2014 :
+      multiSankeyLayout.llnlSankeyPieces.accessors.energy2015;
 
     // TODO: Change emissions accessor once we have a possible model
 

@@ -82,7 +82,7 @@ function parseSankeyDataset(sankeyData, nodeSankeyClassFilter) {
   });
 
   if (nodeSankeyClassFilter) {
-    nodes = nodes.filter(n => n._whichSankey === undefined || n._whichSankey === nodeSankeyClassFilter);
+    nodes = nodes.filter(n => n.whichSankey === undefined || n.whichSankey === nodeSankeyClassFilter);
   }
 
   sankeyData.nodes = nodes;
@@ -94,6 +94,9 @@ function parseSankeyDataset(sankeyData, nodeSankeyClassFilter) {
   sankeyData.links.forEach(l => {
     l.sourceId = l.source;
     l.targetId = l.target;
+
+    // Reference the index, not the node itself b/c sankifyFactory() produces getters that clone the nodes to
+    // prevent interference across multiple usages of a common data.
     l.source = nodeIndeciesById[l.source];
     l.target = nodeIndeciesById[l.target];
   });

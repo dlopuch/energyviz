@@ -7,6 +7,8 @@ require('./style/energySankey.less');
 
 // preprocess:
 let energy = energyDatasets.getConsumption2014('TWh');
+energy.nodes = energy.nodes.filter(n => n.id !== 'energyServices');
+energy.links = energy.links.filter(l => l.targetId !== 'energyServices');
 
 window.energy = energy;
 

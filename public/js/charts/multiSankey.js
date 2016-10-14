@@ -1,6 +1,7 @@
 const d3 = require('d3');
 
 const MultiSankeyLayout = require('./llnlEnergySankey').LlnlMultiSankeyLayout;
+const emissionsInterpolator = require('../models/sankeyEmissionInterpolator');
 
 require('../style/energySankey.less');
 
@@ -127,7 +128,8 @@ module.exports = function() {
   function updateEmissionsScale(animate) {
     (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 400 : 0) : emissionsAxisG)
       .attr('transform', `translate(${emissionsAnalysisVisible ? width - 16 : width + margin.right + 10}, 0)`)
-      .style('opacity', emissionsAnalysisVisible ? 1 : 0);
+      .style('opacity', emissionsAnalysisVisible ? 1 : 0)
+      .call(emissionsAxis);
   }
 
   function _updateLayout(animate) {
@@ -266,9 +268,11 @@ module.exports = function() {
       multiSankeyLayout.llnlSankeyPieces.accessors.energy2014 :
       multiSankeyLayout.llnlSankeyPieces.accessors.energy2015;
 
-    // TODO: Change emissions accessor once we have a possible model
+    curEmissionsAccessor = is2014 ?
+      multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014 :
+      l => emissionsInterpolator(l, multiSankeyLayout.llnlSankeyPieces.accessors.energy2015, 'TWh', 'MMT');
 
-    console.log(`Now showing ${is2014 ? '2015' : '2014'} energy, emissions stays 2014.`);
+    console.log(`Now showing ${is2014 ? '2015' : '2014'} energy, 2015 emissions are interpolated from 2014.`);
     updateLayout(true);
   };
 

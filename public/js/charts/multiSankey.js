@@ -81,15 +81,18 @@ module.exports = function() {
         // So we make our own interpolator for the transition.
         .styleTween('stroke-width', function(l) {
           return d3.interpolateNumber(parseFloat(d3.select(this).style('stroke-width')) || 0, Math.max(2, l.dy));
-        });
+        })
+        .style('opacity', 1);
     } else {
       link
         .attr('d', linkPathGenerator)
-        .style('stroke-width', d => Math.max(2, d.dy));
+        .style('stroke-width', d => Math.max(2, d.dy))
+        .style('opacity', 1);
     }
 
     (animate ? nodes.transition() : nodes)
-      .attr('transform', d => `translate(${d.x},${d.y})`);
+      .attr('transform', d => `translate(${d.x},${d.y})`)
+      .style('opacity', 1);
 
     (animate ? nodeRects.transition() : nodeRects)
       .attr('height', d => d.dy)
@@ -112,6 +115,64 @@ module.exports = function() {
   _updateLayout(false); // skip recalculate layout on first update -- already did it
 
 
+  /*
+   * Showing and Hiding Nodes
+   * ------------
+   * Hiding the sink nodes (or any nodes) is a bit tricky, non-standard slide-things-off-stage d3'ing.
+   * The trick is the link path generator draws the link relative to the link's source and target data objects.
+   * Thus, we can move the sankey nodes off screen using standard d3, but if the underlying data objects remain
+   * unchanged, the link paths will stay static.
+   * Solution is to define a manual d3 tween that has the side-effect that it *changes the underlying sankey node
+   * data object*.  Unlike normal d3 animations, we're changing the data object on each animation frame and then
+   * drawing the position of both the node and the link off the changed data object.
+   */
+  let energySinkNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'consumption';
+  function hideNodesAndLinks(nodeFilter, linkFilter) {
+    let offscreenY = height + margin.top + margin.bottom;
+    nodes.filter(nodeFilter).transition()
+      .tween('hideNodesAndLinks', function(n) {
+        let nodeEl = this;
+        let newYInterpolator = d3.interpolateNumber(n.y, offscreenY + n.y);
+        n._origY = n.y;
+        return t => {
+          // Need to change the data so the relative-position link path generator can draw link to follow this
+          n.y = newYInterpolator(t);
+
+          // and move it down while we're already interpolating it
+          nodeEl.setAttribute('transform', `translate(${n.x},${n.y})`);
+        };
+      })
+      .style('opacity', 0);
+
+    link.filter(linkFilter ? l => linkFilter(l) : l => nodeFilter(l.target)).transition()
+      .attrTween('d', function(l) {
+        return t => linkPathGenerator(l); // eslint-disable-line no-unused-vars
+      })
+      .style('opacity', 0);
+  }
+  function showNodesAndLinks(nodeFilter, linkFilter) {
+    nodes.filter(nodeFilter).transition()
+      .tween('showSinks', function(n) {
+        let nodeEl = this;
+        let newYInterpolator = d3.interpolateNumber(n.y, n._origY);
+        return t => {
+          // Need to change the data so the relative-position link path generator can draw link to follow this
+          n.y = newYInterpolator(t);
+
+          // and move it up while we're already interpolating it
+          nodeEl.setAttribute('transform', `translate(${n.x},${n.y})`);
+        };
+      })
+      .style('opacity', 1);
+
+    link.filter(linkFilter ? l => linkFilter(l) : l => nodeFilter(l.target)).transition()
+      .attrTween('d', function(l) {
+        return t => linkPathGenerator(l); // eslint-disable-line no-unused-vars
+      })
+      .style('opacity', 1);
+  }
+
+
   window.updateLayout = updateLayout;
   let is2014 = true;
   window.toggleYearAndUpdate = function toggleYear() {
@@ -124,5 +185,7 @@ module.exports = function() {
     updateLayout(true);
     is2014 = !is2014;
   };
-  console.log('Yo! try hitting toggleYearAndUpdate() to see example of transition!');
+  window.hideSinks = () => hideNodesAndLinks(energySinkNodeFilter);
+  window.showSinks = () => showNodesAndLinks(energySinkNodeFilter);
+  console.log('Yo! try hitting toggleYearAndUpdate(), hideSinks(), or showSinks() to see examples of transitions!');
 };

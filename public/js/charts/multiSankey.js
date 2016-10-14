@@ -39,14 +39,19 @@ module.exports = function() {
   window.msLayout = multiSankeyLayout;
   window.msLayoutData = layoutData;
 
+  layoutData = {
+    links: layoutData.energyLayout.links.concat(layoutData.emissionsLayout.analysisLinks),
+    nodes: layoutData.energyLayout.nodes.concat(layoutData.emissionsLayout.analysisNodes),
+  };
+
   let linkPathGenerator = MultiSankeyLayout.makeLinkPathGenerator();
 
-  let link = svg.append('g').classed('sankey-links', true).selectAll('.link')
+  let links = svg.append('g').classed('sankey-links', true).selectAll('.link')
     .data(layoutData.links)
     .enter().append('path')
       .attr('class', d => `link ${d.data.style || ''}`);
 
-  link.append('title')
+  links.append('title')
     .text(d => `${d.source.data.name} → ${d.target.data.name}\n${format(d.values.energy)}`);
 
   let nodes = svg.append('g').classed('sankey-nodes', true).selectAll('.node')
@@ -75,7 +80,7 @@ module.exports = function() {
 
   function _updateLayout(animate) {
     if (animate) {
-      link.transition()
+      links.transition()
         .attr('d', linkPathGenerator)
         // stroke-width isn't recognized as a transition'able style.  Which is wrong.
         // So we make our own interpolator for the transition.
@@ -84,7 +89,7 @@ module.exports = function() {
         })
         .style('opacity', 1);
     } else {
-      link
+      links
         .attr('d', linkPathGenerator)
         .style('stroke-width', d => Math.max(2, d.dy))
         .style('opacity', 1);
@@ -144,7 +149,7 @@ module.exports = function() {
       })
       .style('opacity', 0);
 
-    link.filter(linkFilter ? l => linkFilter(l) : l => nodeFilter(l.target)).transition()
+    links.filter(linkFilter ? l => linkFilter(l) : l => nodeFilter(l.target)).transition()
       .attrTween('d', function(l) {
         return t => linkPathGenerator(l); // eslint-disable-line no-unused-vars
       })
@@ -165,7 +170,7 @@ module.exports = function() {
       })
       .style('opacity', 1);
 
-    link.filter(linkFilter ? l => linkFilter(l) : l => nodeFilter(l.target)).transition()
+    links.filter(linkFilter ? l => linkFilter(l) : l => nodeFilter(l.target)).transition()
       .attrTween('d', function(l) {
         return t => linkPathGenerator(l); // eslint-disable-line no-unused-vars
       })

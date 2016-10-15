@@ -186,8 +186,10 @@ module.exports = function() {
     // Update the emissions scale
     emissionsScale
       .domain([0, emissionsAnalysisNode.values.emissions])
-      .range([0, emissionsAnalysisNode.dy])
-      .nice();
+      .nice(); // .nice() rescales the domain up to the next nice value.  Need to figure out the range off that.
+    let newEmissionsDomain = emissionsScale.domain();
+    emissionsScale
+      .range([0, emissionsAnalysisNode.dy / emissionsAnalysisNode.values.emissions * newEmissionsDomain[1]]);
     updateEmissionsScale(animate);
   }
 
@@ -260,6 +262,7 @@ module.exports = function() {
 
 
   window.updateLayout = updateLayout;
+  window.emissionsScale = emissionsScale;
 
   window.toggleYearAndUpdate = function toggleYear() {
     is2014 = !is2014;

@@ -87,6 +87,10 @@ module.exports = function interpolateAnyLinkEmissions(
     return interpolateEmissions(link, getLinkEnergy, energyUnits, emissionsUnits);
   }
 
+  if (link.source.data.category === 'consumer' && link.target.data.category === 'consumer') {
+    return 0; // electricity --> any of the other consumers
+  }
+
   // Else, it's an aggregate link.  Add up all the source node's incoming energySource links.
   return d3.sum(
     link.source.inboundLinks.filter(l => l.source.data.category === 'source'),

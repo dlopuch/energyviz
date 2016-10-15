@@ -174,7 +174,7 @@ module.exports = class LlnlMultiSankeyLayout {
       node.y = 0;
       node.dy = node.values[EMISSIONS_VALUE_KEY] * this._emissionsScaleFactor;
 
-      // Now scale all of it's incoming links
+      // Now position all of it's incoming links
       let ty = 0;
       node.inboundLinks.filter(EMISSIONS_LINKS_FILTER).forEach(l => {
         l.sy = l.dy / 2;

@@ -106,7 +106,8 @@ class SankeyEngine {
    * @return {Object} Links and node columns with column stats
    */
   getLayoutData(valueKey, linkValueAccessor, nodeFilter) {
-    let links = this._links.filter(l => nodeFilter(l.source) && nodeFilter(l.target));
+    let linksFilter = l => nodeFilter(l.source) && nodeFilter(l.target);
+    let links = this._links.filter(linksFilter);
     links.forEach(l => l.values[valueKey] = linkValueAccessor(l));
 
     return {
@@ -115,8 +116,8 @@ class SankeyEngine {
         let nodes = nodeFilter ? colData.values.filter(nodeFilter) : colData.values;
 
         nodes.forEach(n => n.values[valueKey] = d3.max([
-          d3.sum(n.inboundLinks, l => l.values[valueKey]),
-          d3.sum(n.outboundLinks, l => l.values[valueKey]),
+          d3.sum(n.inboundLinks.filter(linksFilter), l => l.values[valueKey]),
+          d3.sum(n.outboundLinks.filter(linksFilter), l => l.values[valueKey]),
         ]));
         return {
           col: colData.key,

@@ -15,7 +15,7 @@ const AXIS_PADDING = 4;
 module.exports = function() {
   let margin = {
     top: 10,
-    right: 30,
+    right: 40,
     bottom: 10,
     left: 50,
   };
@@ -81,9 +81,15 @@ module.exports = function() {
   // Create energy scale
   let energyScale = d3.scaleLinear();
   let energyAxis = d3.axisLeft(energyScale);
-  let energyAxisG = svg.append('g')
-    .classed('energy-axis', true)
+  let energyAxisWrap = svg.append('g')
+    .classed('energy-axis-wrap', true)
     .attr('transform', `translate(${-AXIS_PADDING}, 0)`);
+  let energyAxisLabel = energyAxisWrap.append('text')
+    .attr('transform', 'translate(-30,30) rotate(-90)')
+    .text('TWh')
+    .style('fill', '#BBB');
+  let energyAxisG = energyAxisWrap.append('g')
+    .classed('energy-axis', true);
   // (scaling and such done in updateEnergyScale())
 
 
@@ -91,7 +97,13 @@ module.exports = function() {
   let emissionsAnalysisNode = allLayoutData.emissionsLayout.analysisNodes[0];
   let emissionsScale = d3.scaleLinear();
   let emissionsAxis = d3.axisRight(emissionsScale);
-  let emissionsAxisG = svg.append('g')
+  let emissionsAxisWrap = svg.append('g')
+    .classed('emissions-axis-wrap', true);
+  let emissionsAxisLabel = emissionsAxisWrap.append('text')
+    .attr('transform', 'translate(50, 160) rotate(-90)') // TODO use a text anchor
+    .text('Million Metric Tons CO2')
+    .style('fill', '#BBB');
+  let emissionsAxisG = emissionsAxisWrap.append('g')
     .classed('emissions-axis', true);
   // (scaling and such done in updateEmissionsScale())
 
@@ -186,11 +198,13 @@ module.exports = function() {
         .range([0, newLayoutData.emissionsLayout.pxPerUnitEmission * newEmissionsDomain[1]]);
     }
 
-    (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 250 : 0) : emissionsAxisG)
+    (animate ? emissionsAxisWrap.transition().delay(emissionsAnalysisVisible ? 250 : 0) : emissionsAxisWrap)
       .attr('transform', `translate(${
         emissionsAnalysisVisible ? width - EMISSIONS_AXIS_MARGIN + AXIS_PADDING : width + margin.right + 4
       }, 0)`)
-      .style('opacity', emissionsAnalysisVisible ? 1 : 0)
+      .style('opacity', emissionsAnalysisVisible ? 1 : 0);
+
+    (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 250 : 0) : emissionsAxisG)
       .call(emissionsAxis);
   }
 

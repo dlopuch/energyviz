@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const d3 = require('d3');
 
 const MultiSankeyLayout = require('./llnlEnergySankey').LlnlMultiSankeyLayout;
@@ -53,6 +54,16 @@ module.exports = function() {
     links: allLayoutData.emissionsLayout.analysisLinks.concat(allLayoutData.energyLayout.links),
     nodes: allLayoutData.emissionsLayout.analysisNodes.concat(allLayoutData.energyLayout.nodes),
   };
+
+  // z-indexing in svg is done based on node order.  Sort things so they start with heaviest links on bottom
+  layoutData.links = _.sortBy(layoutData.links, [
+    // TODO? If link energy sort, get some interweaving where multiple small ones cross over.
+    // Alternative is to sort first by source node weight, but then get a lot of moire checkerboards where heavy
+    // nodes' small links underlap less heavy nodes (eg petroleum --> energy w/ natty gas).
+    // l => -l.source.values.energy,
+
+    l => -l.values.energy,
+  ]);
 
 
   let energyAnalysisVisible = true;

@@ -6,12 +6,18 @@ const emissionsInterpolator = require('../models/sankeyEmissionInterpolator');
 
 require('../style/energySankey.less');
 
+/* Extra spacing on the right side of carbon emissions node for carbon scale */
+const EMISSIONS_AXIS_MARGIN = 20;
+
+/** Padding between axes and their nodes */
+const AXIS_PADDING = 4;
+
 module.exports = function() {
   let margin = {
     top: 10,
     right: 30,
     bottom: 10,
-    left: 10,
+    left: 50,
   };
 
   let width = 960 - margin.left - margin.right;
@@ -71,17 +77,24 @@ module.exports = function() {
   let energyAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'consumption';
   let emissionsAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'emissions';
 
+
+  // Create energy scale
+  let energyScale = d3.scaleLinear();
+  let energyAxis = d3.axisLeft(energyScale);
+  let energyAxisG = svg.append('g')
+    .classed('energy-axis', true)
+    .attr('transform', `translate(${-AXIS_PADDING}, 0)`);
+  // (scaling and such done in updateEnergyScale())
+
+
+  // Create emissions scale
   let emissionsAnalysisNode = allLayoutData.emissionsLayout.analysisNodes[0];
-  let emissionsScale = d3.scaleLinear()
-    .domain([0, emissionsAnalysisNode.values.emissions])
-    .range([0, emissionsAnalysisNode.dy])
-    .nice();
+  let emissionsScale = d3.scaleLinear();
   let emissionsAxis = d3.axisRight(emissionsScale);
   let emissionsAxisG = svg.append('g')
-    .classed('emissions-asix', true)
-    .attr('transform', `translate(${width + margin.right + 10}, 0)`)
-    .style('opacity', emissionsAnalysisVisible ? 1 : 0)
-    .call(emissionsAxis);
+    .classed('emissions-axis', true);
+  // (scaling and such done in updateEmissionsScale())
+
 
   let linkPathGenerator = MultiSankeyLayout.makeLinkPathGenerator();
 
@@ -132,18 +145,56 @@ module.exports = function() {
   let energyAnalysisNodesSel = nodes.filter(energyAnalysisNodeFilter);
   let emissionsAnalysisNodesSel = nodes.filter(emissionsAnalysisNodeFilter);
 
+
+  /**
+   * Shows, hides, and rescales the energy scale
+   * @param {boolean} animate True to animate it
+   * @param {object} [newLayoutData] Optional.  New layout data from sankeyLayout.calculateLayout(), otherwise scale
+   *   remains unchanged.
+   */
+  function updateEnergyScale(animate, newLayoutData) {
+    if (newLayoutData) {
+      energyScale
+        .domain([0, newLayoutData.energyLayout.maxColumnSum / 2])
+        .nice();
+
+      // .nice() rescales the domain up to the next nice value.  Need to figure out the range off that.
+      let newEnergyDomain = energyScale.domain();
+      energyScale
+        .range([0, newLayoutData.energyLayout.pxPerUnitEnergy * newEnergyDomain[1]]);
+    }
+
+    (animate ? energyAxisG.transition() : energyAxisG)
+      .call(energyAxis);
+  }
+
   /**
    * Shows, hides, and rescales the emissions scale
    * @param {boolean} animate True to animate it
+   * @param {object} [newLayoutData] Optional.  New layout data from sankeyLayout.calculateLayout(), otherwise scale
+   *   remains unchanged.
    */
-  function updateEmissionsScale(animate) {
-    (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 400 : 0) : emissionsAxisG)
-      .attr('transform', `translate(${emissionsAnalysisVisible ? width - 16 : width + margin.right + 10}, 0)`)
+  function updateEmissionsScale(animate, newLayoutData) {
+    if (newLayoutData) {
+      emissionsScale
+        .domain([0, emissionsAnalysisNode.values.emissions])
+        .nice();
+
+      // .nice() rescales the domain up to the next nice value.  Need to figure out the range off that.
+      let newEmissionsDomain = emissionsScale.domain();
+      emissionsScale
+        .range([0, newLayoutData.emissionsLayout.pxPerUnitEmission * newEmissionsDomain[1]]);
+    }
+
+    (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 250 : 0) : emissionsAxisG)
+      .attr('transform', `translate(${
+        emissionsAnalysisVisible ? width - EMISSIONS_AXIS_MARGIN + AXIS_PADDING : width + margin.right + 4
+      }, 0)`)
       .style('opacity', emissionsAnalysisVisible ? 1 : 0)
       .call(emissionsAxis);
   }
 
-  function _updateLayout(animate) {
+  function _updateLayout(animate, newLayoutData) {
     // Pre-positioning: We want the 'analysis' nodes (energy and emissions sinks) to initially be offscreen.  Shown with
     // show/hide functions
     if (!emissionsAnalysisVisible) {
@@ -159,7 +210,7 @@ module.exports = function() {
       });
     }
     emissionsAnalysisNodesSel
-      .each(n => n.x -= 20) // make room for the scale
+      .each(n => n.x -= EMISSIONS_AXIS_MARGIN)
       .style('opacity', emissionsAnalysisVisible ? 1 : 0);
     emissionsAnalysisLinksSel.style('opacity', emissionsAnalysisVisible ? 1 : 0);
     energyAnalysisNodesSel.style('opacity', energyAnalysisVisible ? 1 : 0);
@@ -194,24 +245,19 @@ module.exports = function() {
       .attr('x', d => 6 + d.dx);
 
 
-    // Update the emissions scale
-    emissionsScale
-      .domain([0, emissionsAnalysisNode.values.emissions])
-      .nice(); // .nice() rescales the domain up to the next nice value.  Need to figure out the range off that.
-    let newEmissionsDomain = emissionsScale.domain();
-    emissionsScale
-      .range([0, emissionsAnalysisNode.dy / emissionsAnalysisNode.values.emissions * newEmissionsDomain[1]]);
-    updateEmissionsScale(animate);
+    // Update the scales
+    updateEnergyScale(animate, newLayoutData);
+    updateEmissionsScale(animate, newLayoutData);
   }
 
   function updateLayout(animate) {
     let newData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
     // no need to d3 datajoin, it updates the data objects in place.  Just run layout against new numbers.
-    _updateLayout(animate);
+    _updateLayout(animate, newData);
     return newData;
   }
 
-  _updateLayout(false); // skip recalculate layout on first update -- already did it
+  _updateLayout(false, allLayoutData); // skip recalculate layout on first update -- already did it
 
 
   /*

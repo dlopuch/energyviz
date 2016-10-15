@@ -136,6 +136,9 @@ module.exports = class LlnlMultiSankeyLayout {
     return {
       nodes: _(energyData.cols).map(col => col.nodes).flatten().value(),
       links: energyData.links,
+
+      pxPerUnitEnergy: this._energyNodeScaleFactor,
+      maxColumnSum: _(energyData.cols).map(c => c.colValueSum).max(),
     };
   }
 
@@ -186,6 +189,8 @@ module.exports = class LlnlMultiSankeyLayout {
     return {
       nodes: emissionsDataNodes,
       links: emissionsData.links,
+
+      pxPerUnitEmission: this._emissionsScaleFactor,
 
       // For emissions, we generally only want to display the analysis (rightmost sink column) nodes
       analysisNodes,

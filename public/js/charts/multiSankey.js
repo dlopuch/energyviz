@@ -273,7 +273,6 @@ module.exports = function() {
 
 
   window.updateLayout = updateLayout;
-  window.emissionsScale = emissionsScale;
 
   window.toggleYearAndUpdate = function toggleYear() {
     is2014 = !is2014;

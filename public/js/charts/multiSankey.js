@@ -84,8 +84,9 @@ module.exports = function() {
   let energyAxisWrap = svg.append('g')
     .classed('energy-axis-wrap', true)
     .attr('transform', `translate(${-AXIS_PADDING}, 0)`);
-  let energyAxisLabel = energyAxisWrap.append('text')
-    .attr('transform', 'translate(-30,30) rotate(-90)')
+  energyAxisWrap.append('text')
+    .attr('transform', 'translate(-30,0) rotate(-90)')
+    .attr('text-anchor', 'end')
     .text('TWh')
     .style('fill', '#BBB');
   let energyAxisG = energyAxisWrap.append('g')
@@ -99,8 +100,9 @@ module.exports = function() {
   let emissionsAxis = d3.axisRight(emissionsScale);
   let emissionsAxisWrap = svg.append('g')
     .classed('emissions-axis-wrap', true);
-  let emissionsAxisLabel = emissionsAxisWrap.append('text')
-    .attr('transform', 'translate(50, 160) rotate(-90)') // TODO use a text anchor
+  emissionsAxisWrap.append('text')
+    .attr('transform', 'translate(50, 0) rotate(-90)')
+    .attr('text-anchor', 'end')
     .text('Million Metric Tons CO2')
     .style('fill', '#BBB');
   let emissionsAxisG = emissionsAxisWrap.append('g')

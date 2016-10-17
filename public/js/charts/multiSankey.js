@@ -3,6 +3,7 @@ const d3 = require('d3');
 
 const MultiSankeyLayout = require('./llnlEnergySankey').LlnlMultiSankeyLayout;
 const emissionsInterpolator = require('../models/sankeyEmissionInterpolator');
+const wecWorldEnergyScenarios = require('../models/wecWorldEnergyScenarios');
 
 require('../style/energySankey.less');
 
@@ -16,7 +17,7 @@ module.exports = function() {
   let margin = {
     top: 10,
     right: 40,
-    bottom: 10,
+    bottom: 15,
     left: 50,
   };
 
@@ -159,7 +160,7 @@ module.exports = function() {
   let energyAnalysisNodesSel = nodes.filter(energyAnalysisNodeFilter);
   let emissionsAnalysisNodesSel = nodes.filter(emissionsAnalysisNodeFilter);
 
-
+  let maxEnergyDomain = -Infinity;
   /**
    * Shows, hides, and rescales the energy scale
    * @param {boolean} animate True to animate it
@@ -168,8 +169,9 @@ module.exports = function() {
    */
   function updateEnergyScale(animate, newLayoutData) {
     if (newLayoutData) {
+      maxEnergyDomain = Math.max(maxEnergyDomain, newLayoutData.energyLayout.maxColumnSum);
       energyScale
-        .domain([0, newLayoutData.energyLayout.maxColumnSum / 2])
+        .domain([0, maxEnergyDomain])
         .nice();
 
       // .nice() rescales the domain up to the next nice value.  Need to figure out the range off that.
@@ -347,7 +349,24 @@ module.exports = function() {
       multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014 :
       l => emissionsInterpolator(l, multiSankeyLayout.llnlSankeyPieces.accessors.energy2015, 'TWh', 'MMT');
 
-    console.log(`Now showing ${is2014 ? '2015' : '2014'} energy, 2015 emissions are interpolated from 2014.`);
+    console.log(`Now showing ${is2014 ? '2014' : '2015'} energy, 2015 emissions are interpolated from 2014.`);
+    updateLayout(true);
+  };
+
+  let isWec2060 = false;
+  window.toggleWec2060 = function toggleWec2060(wecScenarioKey) {
+    if (!wecScenarioKey || !isWec2060) {
+      isWec2060 = !isWec2060;
+    }
+
+    if (!isWec2060) {
+      return window.toggleYearAndUpdate();
+    }
+
+    curEnergyAccessor = l => wecWorldEnergyScenarios(l, wecScenarioKey);
+    curEmissionsAccessor = l => emissionsInterpolator(l, curEnergyAccessor, 'TWh', 'MMT');
+
+    console.log('Now showing 2060 energy, emissions interpolated via 2014 emitter efficiencies');
     updateLayout(true);
   };
 

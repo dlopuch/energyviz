@@ -13,7 +13,7 @@ const EMISSIONS_AXIS_MARGIN = 20;
 /** Padding between axes and their nodes */
 const AXIS_PADDING = 4;
 
-module.exports = function() {
+module.exports = function(multiSankeyWrapEl) {
   let margin = {
     top: 10,
     right: 40,
@@ -24,7 +24,7 @@ module.exports = function() {
   let width = 960 - margin.left - margin.right;
   let height = 500 - margin.top - margin.bottom;
 
-  let svg = d3.select('#multi_sankey').append('svg')
+  let svg = d3.select(multiSankeyWrapEl || '#multi_sankey').append('svg')
     .classed('sankey', true)
     .attr('width', width + margin.left + margin.right)
     .attr('height', height + margin.top + margin.bottom)

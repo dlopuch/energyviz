@@ -1,30 +1,17 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
+const ReactReduxProvider = require('react-redux').Provider;
 
-const DemoReactComponent = React.createClass({
-  render() {
-    return (
-      <div>
-        <div>
-          This text was rendered by a demo react component!
-        </div>
-        {process.env.NODE_ENV === 'production' ? (null) : (
-          <div>
-            And this block will get minified away in prod if react minification is working properly! <br/>
-            (Try it for yourself by running: <tt>NODE_ENV=production webpack-dev-server</tt>)
-          </div>
-        )}
-      </div>
-    );
-  }
-});
+const SankeyContainer = require('./views/sankey/SankeyContainer.jsx');
+const store = require('./redux/store');
 
-module.exports = function ourReactApp() {
+module.exports = function reactApp() {
   ReactDOM.render(
-    <div>
-      <h1>React App</h1>
-      <DemoReactComponent/>
-    </div>,
+    <ReactReduxProvider store={store}>
+      <div>
+        <SankeyContainer> </SankeyContainer>
+      </div>
+    </ReactReduxProvider>,
     document.getElementById('react_app')
   );
 }

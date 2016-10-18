@@ -5,15 +5,25 @@ const d3 = require('d3');
 const getNodesAndLinks = require('./llnlSankeyNodes');
 const sankeyCore = require('./sankeyCore');
 
+const ENERGY_VALUE_KEY = 'energy';
+const ENERGY_NODES_FILTER = n => n.data.whichSankey !== 'emissions';
+const ENERGY_LINKS_FILTER = l => ENERGY_NODES_FILTER(l.source) && ENERGY_NODES_FILTER(l.target); // eslint-disable-line new-cap
+
+const EMISSIONS_VALUE_KEY = 'emissions';
+const EMISSIONS_NODES_FILTER = n => n.data.whichSankey !== 'consumption';
+const EMISSIONS_LINKS_FILTER = l => EMISSIONS_NODES_FILTER(l.source) && EMISSIONS_NODES_FILTER(l.target); // eslint-disable-line new-cap
+const EMISSIONS_ANALYSIS_NODES_FILTER = n => EMISSIONS_NODES_FILTER(n) && n.data.category === 'analysis'; // eslint-disable-line new-cap
+const EMISSIONS_ANALYSIS_LINKS_FILTER = l => EMISSIONS_ANALYSIS_NODES_FILTER(l.target); // eslint-disable-line new-cap
+
 module.exports = class LlnlMultiSankeyLayout {
   constructor(opts) {
     // Parse all the data and transform it all into appropriate nodes, links, and controls
-    this.dataAndControls = getNodesAndLinks();
+    this.llnlSankeyPieces = getNodesAndLinks();
 
     this._engine = new sankeyCore.SankeyEngine()
-      .nodes(this.dataAndControls.nodes)
-      .links(this.dataAndControls.links)
-      .init();
+      .nodes(this.llnlSankeyPieces.nodes)
+      .links(this.llnlSankeyPieces.links)
+      .init(); // links all the nodes together, calculates columns
 
     this.opts = _.defaults(opts, {
       width: 960,
@@ -57,24 +67,20 @@ module.exports = class LlnlMultiSankeyLayout {
     return link;
   }
 
-  calculateLayout() {
+  calculateLayout(energyAccessor, emissionsAccessor) {
     return {
-      energyLayout: this._calculateEnergyLayout(),
-      emissionsLayout: this._calculateEmissionsLayout(),
+      energyLayout: this._calculateEnergyLayout(energyAccessor),
+      emissionsLayout: this._calculateEmissionsLayout(emissionsAccessor),
     };
   }
 
-  _calculateEnergyLayout() {
+  _calculateEnergyLayout(energyAccessor) {
     // This is where we diverge from a generic Sankey layout engine and just make something specific for the LLNL flow
-
-    let ENERGY_VALUE_KEY = 'energy';
-    let energyNodesFilter = n => n.data.whichSankey !== 'emissions';
-    let energyLinksFilter = l => energyNodesFilter(l.source) && energyNodesFilter(l.target);
 
     let energyData = this._engine.getLayoutData(
       ENERGY_VALUE_KEY,
-      l => l.getLinkEnergy(),
-      energyNodesFilter // filter down to only energy nodes
+      energyAccessor,
+      ENERGY_NODES_FILTER // skip energy calculations for emissions nodes
     );
 
     // Conversion factor from energy value to pixel (px/TWh). d3-sankey calls this ky.
@@ -99,7 +105,12 @@ module.exports = class LlnlMultiSankeyLayout {
         curY = 0;
       } else if (colI === 2) {
         // Sinks start on bottom
-        curY = this.opts.height -
+        // curY = this.opts.height -
+        //   (col.colValueSum * this._energyNodeScaleFactor + this.opts.nodePadding * (col.nodes.length - 1));
+
+        // Start sinks from bottom of first column
+        let lastSourceNode = energyData.cols[0].nodes[energyData.cols[0].nodes.length - 1];
+        curY = lastSourceNode.y + lastSourceNode.dy -
           (col.colValueSum * this._energyNodeScaleFactor + this.opts.nodePadding * (col.nodes.length - 1));
       } else {
         throw new Error('Unexpected column!');
@@ -115,12 +126,12 @@ module.exports = class LlnlMultiSankeyLayout {
 
         // Now calculate positions of incoming and outbound links
         let ty = 0;
-        node.inboundLinks.filter(energyLinksFilter).forEach(l => {
+        node.inboundLinks.filter(ENERGY_LINKS_FILTER).forEach(l => {
           l.ty = ty + l.dy / 2;
           ty += l.dy;
         });
         let sy = 0;
-        node.outboundLinks.filter(energyLinksFilter).forEach(l => {
+        node.outboundLinks.filter(ENERGY_LINKS_FILTER).forEach(l => {
           l.sy = sy + l.dy / 2;
           sy += l.dy;
         });
@@ -130,19 +141,17 @@ module.exports = class LlnlMultiSankeyLayout {
     return {
       nodes: _(energyData.cols).map(col => col.nodes).flatten().value(),
       links: energyData.links,
+
+      pxPerUnitEnergy: this._energyNodeScaleFactor,
+      maxColumnSum: _(energyData.cols).map(c => c.colValueSum).max(),
     };
   }
 
-  _calculateEmissionsLayout() {
-    let EMISSIONS_VALUE_KEY = 'emissions';
-    let emissionsNodesFilter = n => n.data.whichSankey !== 'consumption';
-    let emissionsLinksFilter = l => emissionsNodesFilter(l.source) && emissionsNodesFilter(l.target);
-    let emissionsAnalysisLinksFilter = l => emissionsNodesFilter(l.target) && l.target.data.category === 'analysis';
-
+  _calculateEmissionsLayout(emissionsAccessor) {
     let emissionsData = this._engine.getLayoutData(
       EMISSIONS_VALUE_KEY,
-      l => l.getLinkEmissions(),
-      emissionsNodesFilter // filter down to only energy nodes
+      emissionsAccessor,
+      EMISSIONS_NODES_FILTER // skip emissions calcs for energy-only nodes
     );
     let emissionsDataNodes = _(emissionsData.cols).map(col => col.nodes).flatten().value();
 
@@ -159,23 +168,23 @@ module.exports = class LlnlMultiSankeyLayout {
     );
 
     // Figure out thickness of only the analysis links (others won't be shown, and their thickness is from energy)
-    let analysisLinks = emissionsData.links.filter(emissionsAnalysisLinksFilter);
+    let analysisLinks = emissionsData.links.filter(EMISSIONS_ANALYSIS_LINKS_FILTER);
     analysisLinks.forEach(l => {
       l.dy = l.values[EMISSIONS_VALUE_KEY] * this._emissionsScaleFactor;
     });
 
     // We're only positioning and sizing the emissions sink node -- others are positioned and sized by energy
     let colDx = (this.opts.width - this.opts.nodeWidth) / (emissionsData.cols.length - 1);
-    let analysisNodes = emissionsDataNodes.filter(n => n.data.category === 'analysis');
+    let analysisNodes = emissionsDataNodes.filter(EMISSIONS_ANALYSIS_NODES_FILTER);
     analysisNodes.forEach(node => {
       node.x = 3 * colDx;
       node.dx = this.opts.nodeWidth;
       node.y = 0;
       node.dy = node.values[EMISSIONS_VALUE_KEY] * this._emissionsScaleFactor;
 
-      // Now scale all of it's incoming links
+      // Now position all of it's incoming links
       let ty = 0;
-      node.inboundLinks.filter(emissionsLinksFilter).forEach(l => {
+      node.inboundLinks.filter(EMISSIONS_LINKS_FILTER).forEach(l => {
         l.sy = l.dy / 2;
         l.ty = ty + l.dy / 2;
         ty += l.dy;
@@ -185,6 +194,8 @@ module.exports = class LlnlMultiSankeyLayout {
     return {
       nodes: emissionsDataNodes,
       links: emissionsData.links,
+
+      pxPerUnitEmission: this._emissionsScaleFactor,
 
       // For emissions, we generally only want to display the analysis (rightmost sink column) nodes
       analysisNodes,

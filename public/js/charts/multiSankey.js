@@ -1,15 +1,24 @@
+const _ = require('lodash');
 const d3 = require('d3');
 
 const MultiSankeyLayout = require('./llnlEnergySankey').LlnlMultiSankeyLayout;
+const emissionsInterpolator = require('../models/sankeyEmissionInterpolator');
+const wecWorldEnergyScenarios = require('../models/wecWorldEnergyScenarios');
 
 require('../style/energySankey.less');
+
+/* Extra spacing on the right side of carbon emissions node for carbon scale */
+const EMISSIONS_AXIS_MARGIN = 20;
+
+/** Padding between axes and their nodes */
+const AXIS_PADDING = 4;
 
 module.exports = function() {
   let margin = {
     top: 10,
-    right: 30,
-    bottom: 10,
-    left: 10,
+    right: 40,
+    bottom: 15,
+    left: 50,
   };
 
   let width = 960 - margin.left - margin.right;
@@ -35,7 +44,11 @@ module.exports = function() {
   });
   let offscreenY = height + margin.top + margin.bottom;
 
-  let allLayoutData = multiSankeyLayout.calculateLayout();
+  let is2014 = true;
+  let curEnergyAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.energy2014;
+  let curEmissionsAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014;
+
+  let allLayoutData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
 
   window.msLayout = multiSankeyLayout;
   window.msLayoutData = allLayoutData;
@@ -49,23 +62,54 @@ module.exports = function() {
     nodes: allLayoutData.emissionsLayout.analysisNodes.concat(allLayoutData.energyLayout.nodes),
   };
 
+  // z-indexing in svg is done based on node order.  Sort things so they start with heaviest links on bottom
+  layoutData.links = _.sortBy(layoutData.links, [
+    // TODO? If link energy sort, get some interweaving where multiple small ones cross over.
+    // Alternative is to sort first by source node weight, but then get a lot of moire checkerboards where heavy
+    // nodes' small links underlap less heavy nodes (eg petroleum --> energy w/ natty gas).
+    // l => -l.source.values.energy,
+
+    l => -l.values.energy,
+  ]);
+
 
   let energyAnalysisVisible = true;
   let emissionsAnalysisVisible = false;
   let energyAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'consumption';
   let emissionsAnalysisNodeFilter = n => n.data.category === 'analysis' && n.data.whichSankey === 'emissions';
 
+
+  // Create energy scale
+  let energyScale = d3.scaleLinear();
+  let energyAxis = d3.axisLeft(energyScale);
+  let energyAxisWrap = svg.append('g')
+    .classed('energy-axis-wrap', true)
+    .attr('transform', `translate(${-AXIS_PADDING}, 0)`);
+  energyAxisWrap.append('text')
+    .attr('transform', 'translate(-30,0) rotate(-90)')
+    .attr('text-anchor', 'end')
+    .text('TWh')
+    .style('fill', '#BBB');
+  let energyAxisG = energyAxisWrap.append('g')
+    .classed('energy-axis', true);
+  // (scaling and such done in updateEnergyScale())
+
+
+  // Create emissions scale
   let emissionsAnalysisNode = allLayoutData.emissionsLayout.analysisNodes[0];
-  let emissionsScale = d3.scaleLinear()
-    .domain([0, emissionsAnalysisNode.values.emissions])
-    .range([0, emissionsAnalysisNode.dy])
-    .nice();
+  let emissionsScale = d3.scaleLinear();
   let emissionsAxis = d3.axisRight(emissionsScale);
-  let emissionsAxisG = svg.append('g')
-    .classed('emissions-asix', true)
-    .attr('transform', `translate(${width + margin.right + 10}, 0)`)
-    .style('opacity', emissionsAnalysisVisible ? 1 : 0)
-    .call(emissionsAxis);
+  let emissionsAxisWrap = svg.append('g')
+    .classed('emissions-axis-wrap', true);
+  emissionsAxisWrap.append('text')
+    .attr('transform', 'translate(50, 0) rotate(-90)')
+    .attr('text-anchor', 'end')
+    .text('Million Metric Tons CO2')
+    .style('fill', '#BBB');
+  let emissionsAxisG = emissionsAxisWrap.append('g')
+    .classed('emissions-axis', true);
+  // (scaling and such done in updateEmissionsScale())
+
 
   let linkPathGenerator = MultiSankeyLayout.makeLinkPathGenerator();
 
@@ -116,17 +160,59 @@ module.exports = function() {
   let energyAnalysisNodesSel = nodes.filter(energyAnalysisNodeFilter);
   let emissionsAnalysisNodesSel = nodes.filter(emissionsAnalysisNodeFilter);
 
+  let maxEnergyDomain = -Infinity;
+  /**
+   * Shows, hides, and rescales the energy scale
+   * @param {boolean} animate True to animate it
+   * @param {object} [newLayoutData] Optional.  New layout data from sankeyLayout.calculateLayout(), otherwise scale
+   *   remains unchanged.
+   */
+  function updateEnergyScale(animate, newLayoutData) {
+    if (newLayoutData) {
+      maxEnergyDomain = Math.max(maxEnergyDomain, newLayoutData.energyLayout.maxColumnSum);
+      energyScale
+        .domain([0, maxEnergyDomain])
+        .nice();
+
+      // .nice() rescales the domain up to the next nice value.  Need to figure out the range off that.
+      let newEnergyDomain = energyScale.domain();
+      energyScale
+        .range([0, newLayoutData.energyLayout.pxPerUnitEnergy * newEnergyDomain[1]]);
+    }
+
+    (animate ? energyAxisG.transition() : energyAxisG)
+      .call(energyAxis);
+  }
+
   /**
    * Shows, hides, and rescales the emissions scale
    * @param {boolean} animate True to animate it
+   * @param {object} [newLayoutData] Optional.  New layout data from sankeyLayout.calculateLayout(), otherwise scale
+   *   remains unchanged.
    */
-  function updateEmissionsScale(animate) {
-    (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 400 : 0) : emissionsAxisG)
-      .attr('transform', `translate(${emissionsAnalysisVisible ? width - 16 : width + margin.right + 10}, 0)`)
+  function updateEmissionsScale(animate, newLayoutData) {
+    if (newLayoutData) {
+      emissionsScale
+        .domain([0, emissionsAnalysisNode.values.emissions])
+        .nice();
+
+      // .nice() rescales the domain up to the next nice value.  Need to figure out the range off that.
+      let newEmissionsDomain = emissionsScale.domain();
+      emissionsScale
+        .range([0, newLayoutData.emissionsLayout.pxPerUnitEmission * newEmissionsDomain[1]]);
+    }
+
+    (animate ? emissionsAxisWrap.transition().delay(emissionsAnalysisVisible ? 250 : 0) : emissionsAxisWrap)
+      .attr('transform', `translate(${
+        emissionsAnalysisVisible ? width - EMISSIONS_AXIS_MARGIN + AXIS_PADDING : width + margin.right + 4
+      }, 0)`)
       .style('opacity', emissionsAnalysisVisible ? 1 : 0);
+
+    (animate ? emissionsAxisG.transition().delay(emissionsAnalysisVisible ? 250 : 0) : emissionsAxisG)
+      .call(emissionsAxis);
   }
 
-  function _updateLayout(animate) {
+  function _updateLayout(animate, newLayoutData) {
     // Pre-positioning: We want the 'analysis' nodes (energy and emissions sinks) to initially be offscreen.  Shown with
     // show/hide functions
     if (!emissionsAnalysisVisible) {
@@ -142,7 +228,7 @@ module.exports = function() {
       });
     }
     emissionsAnalysisNodesSel
-      .each(n => n.x -= 20) // make room for the scale
+      .each(n => n.x -= EMISSIONS_AXIS_MARGIN)
       .style('opacity', emissionsAnalysisVisible ? 1 : 0);
     emissionsAnalysisLinksSel.style('opacity', emissionsAnalysisVisible ? 1 : 0);
     energyAnalysisNodesSel.style('opacity', energyAnalysisVisible ? 1 : 0);
@@ -177,22 +263,50 @@ module.exports = function() {
       .attr('x', d => 6 + d.dx);
 
 
-    // Update the emissions scale
-    emissionsScale
-      .domain([0, emissionsAnalysisNode.values.emissions])
-      .range([0, emissionsAnalysisNode.dy])
-      .nice();
-    updateEmissionsScale(animate);
+    // Update the scales
+    updateEnergyScale(animate, newLayoutData);
+    updateEmissionsScale(animate, newLayoutData);
+  }
+
+  // Helper function to check relative percentages.  Because of interpolations and US-specific starting conditions,
+  // not going to hit exact WEC report percentages.
+  function analyzeProducers(newData) {
+    let sourceNodes = newData.energyLayout.nodes.filter(n => n.data.category === 'source');
+
+    let wecReportNodeOrder = {
+      coal: 1,
+      naturalGas: 2,
+      petroleum: 3,
+      solar: 4,
+      wind: 5,
+      geothermal: 6,
+      nuclear: 7,
+      hydro: 8,
+      biomass: 9,
+    };
+
+    let totalEnergy = d3.sum(sourceNodes, n => n.values.energy);
+    console.log('Primary Source breakdown:');
+    table(_(sourceNodes) // eslint-disable-line no-undef
+      .map(n => ({
+        nodeId: n.data.id,
+        valueTwh: n.values.energy,
+        percent: Math.round(n.values.energy / totalEnergy * 100),
+      }))
+      .sortBy(n => wecReportNodeOrder[n.nodeId])
+      .value()
+    );
   }
 
   function updateLayout(animate) {
-    let newData = multiSankeyLayout.calculateLayout();
+    let newData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
     // no need to d3 datajoin, it updates the data objects in place.  Just run layout against new numbers.
-    _updateLayout(animate);
+    _updateLayout(animate, newData);
+    analyzeProducers(newData);
     return newData;
   }
 
-  _updateLayout(false); // skip recalculate layout on first update -- already did it
+  _updateLayout(false, allLayoutData); // skip recalculate layout on first update -- already did it
 
 
   /*
@@ -254,17 +368,39 @@ module.exports = function() {
 
 
   window.updateLayout = updateLayout;
-  let is2014 = true;
+
   window.toggleYearAndUpdate = function toggleYear() {
-    multiSankeyLayout.dataAndControls.setEnergyAccessor(
-      is2014 ?
-        multiSankeyLayout.dataAndControls.accessors.energy2015 :
-        multiSankeyLayout.dataAndControls.accessors.energy2014
-    );
-    console.log(`Now showing ${is2014 ? '2015' : '2014'} data`);
-    updateLayout(true);
     is2014 = !is2014;
+
+    curEnergyAccessor = is2014 ?
+      multiSankeyLayout.llnlSankeyPieces.accessors.energy2014 :
+      multiSankeyLayout.llnlSankeyPieces.accessors.energy2015;
+
+    curEmissionsAccessor = is2014 ?
+      multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014 :
+      l => emissionsInterpolator(l, multiSankeyLayout.llnlSankeyPieces.accessors.energy2015, 'TWh', 'MMT');
+
+    console.log(`Now showing ${is2014 ? '2014' : '2015'} energy, 2015 emissions are interpolated from 2014.`);
+    updateLayout(true);
   };
+
+  let isWec2060 = false;
+  window.toggleWec2060 = function toggleWec2060(wecScenarioKey) {
+    if (!wecScenarioKey || !isWec2060) {
+      isWec2060 = !isWec2060;
+    }
+
+    if (!isWec2060) {
+      return window.toggleYearAndUpdate();
+    }
+
+    curEnergyAccessor = l => wecWorldEnergyScenarios(l, wecScenarioKey);
+    curEmissionsAccessor = l => emissionsInterpolator(l, curEnergyAccessor, 'TWh', 'MMT');
+
+    console.log('Now showing 2060 energy, emissions interpolated via 2014 emitter efficiencies');
+    updateLayout(true);
+  };
+
   window.showEmissions = () => {
     hideNodesAndLinks(false, energyAnalysisNodeFilter);
     energyAnalysisVisible = false;

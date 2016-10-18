@@ -1,7 +1,7 @@
 const redux = require('redux');
 
 // Reducers
-const sankey = require('./sankey');
+const sankey = require('./sankeyReducer');
 
 
 const INITIAL_STATE = {

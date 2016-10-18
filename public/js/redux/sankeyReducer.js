@@ -14,7 +14,10 @@ const AVAILABLE_MODELS = [
 const ACTIONS = {
   CHANGE_MODEL: { type: 'SANKEY_CHANGE_MODEL', newModelId: null },
 };
-exports.ACTIONS = ACTIONS;
+
+exports.actions = {
+  changeModel: (newModelId) => assign(ACTIONS.CHANGE_MODEL, { newModelId }),
+};
 
 exports.INITIAL_STATE = {
   activeModelId: 'llnl2014',
@@ -23,6 +26,8 @@ exports.INITIAL_STATE = {
 };
 
 exports.reducer = function reduceSankey(state, action) {
+  if (state === undefined) return exports.INITIAL_STATE;
+
   if (action.type === ACTIONS.CHANGE_MODEL.type) {
     let newModel = _.find(AVAILABLE_MODELS, { id: action.newModelId });
     if (!newModel) {

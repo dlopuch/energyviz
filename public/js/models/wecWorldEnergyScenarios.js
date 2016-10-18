@@ -6,6 +6,22 @@
 const _ = require('lodash');
 
 /**
+ * Calculate per-annum compounding growth from 2014 to 2060, since that's how a lot of the WEC numbers are estimated.
+ * @param {number} start2014 Principal value in 2014
+ * @param {number} pct Number from 0-1, percent p.a. growth from 2014-2030.
+ *   If pct2030 not specified, interpretted as p.a. growth from 2014-2060.
+ * @param {number} [pct2030] Optional.  Number from 0-1, percent p.a. growth from 2030-2060.
+ * @return {number} Compounded growth of principal
+ */
+function perAnnumCompoundGrowth(start2014, pct, pct2030) {
+  if (pct2030 === undefined) {
+    return start2014 * Math.pow(1.0 + pct, 2060 - 2014);
+  }
+
+  return start2014 * Math.pow(1.0 + pct, 2030 - 2014) * Math.pow(1.0 + pct2030, 2060 - 2030);
+}
+
+/**
  * Defines the predicted growth rates out to 2060 for electricity contributions by source
  * Page 15 of http://www.worldenergy.org/wp-content/uploads/2016/10/World-Energy-Scenarios-2016_Summary-Report-1.pdf
  */
@@ -132,13 +148,61 @@ const TRANSPORT_PCT_INCREASES_BY_PLAN_AND_SOURCE = _.mapValues(TRANSPORT_SHARE, 
   ),
 }));
 
+const RESIDENTIAL_COMMERCIAL_INCREASES_CALCS_BY_PLAN = {
+  // Section 2.2.5.1.1.3 Residential and Commercial, pg 45
+  modernJazz: l => perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.008, 0.003),
+
+  // Section 2.3.5.1.4 Residential and Commercial
+  unfinishedSymphony: l => perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.006, 0),
+
+  // 2.4.5.1.4 Residential and Commercial
+  hardRock: l => perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.008, 0.003),
+};
+
+const INDUSTRIAL_INCREASES_CALCS_BY_PLAN = {
+  modernJazz: l => {
+    if (l.source.id === 'petroleum') {
+      // Section 2.2.5.1.1.4 Non Energy Use -- assume only petroleum --> industrial falls under this category (eg plastics)
+      // Since doing US, use only the "mature economy" 0.9% pa growth number.
+      return perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.009);
+    }
+
+    // Else, Section 2.2.5.1.1.1 Industry.  Since we're doing US, we're going to use only the 0.3% 'service-led' growth
+    return perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.003);
+  },
+
+  unfinishedSymphony: l => {
+    if (l.source.id === 'petroleum') {
+      // Sect. 2.3.5.1.5 Non-Energy Use -- assume only petroleum --> industrial falls under this category (eg plastics)
+      // Since doing US, use only the "mature economy" 0.6% pa growth number.
+      return perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.006);
+    }
+
+    // Else, 2.3.5.1.2 Industry.
+    return perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.015, 0.0);
+  },
+
+  hardRock: l => {
+    if (l.source.id === 'petroleum') {
+      // Sect. 2.4.5.1.5 Non-Energy Use -- assume only petroleum --> industrial falls under this category (eg plastics)
+      // Since doing US, use only the "mature economy" 0.6% pa growth number.
+      return perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.006);
+    }
+
+    // Else, 2.4.5.1.2 Industry
+    return perAnnumCompoundGrowth(l.data.energy2014.value.TWh, 0.017, 0.005);
+  },
+};
+
 /**
  * Interpolates energy usage in 2016 to electricity sources according to WEC scenarios report.
  * @param {object} link
  * @param {'modernJazz' | 'unfinishedSymphony' | 'hardRock'} wecScenarioKey Defaults to 'hardRock'
  */
 module.exports = function interpolateEnergyIn2060(link, wecScenarioKey = 'hardRock') {
-  if (link.target.id === 'electricity') {
+  let linkTargetId = link.target.id;
+
+  if (linkTargetId === 'electricity') {
     let growthDefn = ELECTRICITY_SOURCE_2060_GROWTHS[link.source.id];
 
     if (!growthDefn) {
@@ -148,12 +212,14 @@ module.exports = function interpolateEnergyIn2060(link, wecScenarioKey = 'hardRo
     return link.data.energy2014.value.TWh * growthDefn[wecScenarioKey];
   }
 
-  if (link.target.id === 'residential' && link.source.id === 'solar') {
-    // No real residential breakdown, so interpolate off electricity growth for renewables.
+  if (linkTargetId === 'residential' && link.source.id === 'solar') {
+    // WEC report doesn't breakdown solar for electricity vs. solar for residential.
+    // Interpolating both at the same electricity growth rate gets us closer to the relative primary energy breakdowns
+    // than using the residential per-annum increases, so assume both are grouped under electricity.
     return link.data.energy2014.value.TWh * ELECTRICITY_SOURCE_2060_GROWTHS.solar[wecScenarioKey];
   }
 
-  if (link.target.id === 'transportation') {
+  if (linkTargetId === 'transportation') {
     let growthDefn = _.get(TRANSPORT_PCT_INCREASES_BY_PLAN_AND_SOURCE, [wecScenarioKey, '2060', link.source.id]);
 
     if (growthDefn === undefined) {
@@ -161,6 +227,14 @@ module.exports = function interpolateEnergyIn2060(link, wecScenarioKey = 'hardRo
     }
 
     return link.data.energy2014.value.TWh * growthDefn;
+  }
+
+  if (linkTargetId === 'residential' || linkTargetId === 'commercial') {
+    return RESIDENTIAL_COMMERCIAL_INCREASES_CALCS_BY_PLAN[wecScenarioKey](link);
+  }
+
+  if (linkTargetId === 'industrial') {
+    return INDUSTRIAL_INCREASES_CALCS_BY_PLAN[wecScenarioKey](link);
   }
 
   return link.data.energy2014.value.TWh;

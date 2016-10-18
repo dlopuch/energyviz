@@ -105,7 +105,12 @@ module.exports = class LlnlMultiSankeyLayout {
         curY = 0;
       } else if (colI === 2) {
         // Sinks start on bottom
-        curY = this.opts.height -
+        // curY = this.opts.height -
+        //   (col.colValueSum * this._energyNodeScaleFactor + this.opts.nodePadding * (col.nodes.length - 1));
+
+        // Start sinks from bottom of first column
+        let lastSourceNode = energyData.cols[0].nodes[energyData.cols[0].nodes.length - 1];
+        curY = lastSourceNode.y + lastSourceNode.dy -
           (col.colValueSum * this._energyNodeScaleFactor + this.opts.nodePadding * (col.nodes.length - 1));
       } else {
         throw new Error('Unexpected column!');

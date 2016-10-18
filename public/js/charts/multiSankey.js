@@ -268,10 +268,41 @@ module.exports = function() {
     updateEmissionsScale(animate, newLayoutData);
   }
 
+  // Helper function to check relative percentages.  Because of interpolations and US-specific starting conditions,
+  // not going to hit exact WEC report percentages.
+  function analyzeProducers(newData) {
+    let sourceNodes = newData.energyLayout.nodes.filter(n => n.data.category === 'source');
+
+    let wecReportNodeOrder = {
+      coal: 1,
+      naturalGas: 2,
+      petroleum: 3,
+      solar: 4,
+      wind: 5,
+      geothermal: 6,
+      nuclear: 7,
+      hydro: 8,
+      biomass: 9,
+    };
+
+    let totalEnergy = d3.sum(sourceNodes, n => n.values.energy);
+    console.log('Primary Source breakdown:');
+    table(_(sourceNodes) // eslint-disable-line no-undef
+      .map(n => ({
+        nodeId: n.data.id,
+        valueTwh: n.values.energy,
+        percent: Math.round(n.values.energy / totalEnergy * 100),
+      }))
+      .sortBy(n => wecReportNodeOrder[n.nodeId])
+      .value()
+    );
+  }
+
   function updateLayout(animate) {
     let newData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
     // no need to d3 datajoin, it updates the data objects in place.  Just run layout against new numbers.
     _updateLayout(animate, newData);
+    analyzeProducers(newData);
     return newData;
   }
 

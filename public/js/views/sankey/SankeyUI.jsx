@@ -17,7 +17,7 @@ module.exports = React.createClass({
       <div>
         <div className="row">
           <div className="col-md-12">
-            <span>Choose a model:</span>
+            <span>Choose a scenario:</span>
             <div>
               {this.props.sankeyState.availableModels.map(model => (
                 <div key={model.id} className="btn-group btn-group-sm sankey-ui-model-picker">
@@ -33,6 +33,7 @@ module.exports = React.createClass({
                     className={`btn btn-default ${model.id === this.props.sankeyState.activeModelId ? 'btn-primary' : ''}`}
                     onMouseDown={this.onPreviewModelId.bind(this, currentActiveModelId, model.id)}
                     onClick={this.onUnpreviewModelId}
+                    title="Preview"
                   >
                     <span className="glyphicon glyphicon-eye-open" title="Preview"> </span>
                     <span style={{opacity: 0}}>.</span>
@@ -46,8 +47,12 @@ module.exports = React.createClass({
           <div className="col-md-12">
             <div className="text-right" style={{marginTop: 10, width: 940}}>
               {this.props.sankeyState.sankeySinkMode === 'energy' ?
-                (<button className="btn btn-default btn-xs" onClick={this.props.onToggleEmissionsSinks}>Show Emissions</button>) :
-                (<button className="btn btn-default btn-xs" onClick={this.props.onToggleEnergySinks}>Show Energy Waste</button>)
+                (<button className="btn btn-default btn-xs" onClick={this.props.onToggleEmissionsSinks}>
+                  <span className="glyphicon glyphicon-globe"> </span>&nbsp;Show Emissions
+                </button>) :
+                (<button className="btn btn-default btn-xs" onClick={this.props.onToggleEnergySinks}>
+                  <span className="glyphicon glyphicon-flash"> </span>&nbsp;Show Energy Waste
+                </button>)
               }
             </div>
           </div>

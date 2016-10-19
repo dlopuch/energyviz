@@ -2,8 +2,6 @@ const _ = require('lodash');
 const d3 = require('d3');
 
 const MultiSankeyLayout = require('./llnlEnergySankey').LlnlMultiSankeyLayout;
-const emissionsInterpolator = require('../models/sankeyEmissionInterpolator');
-const wecWorldEnergyScenarios = require('../models/wecWorldEnergyScenarios');
 
 require('../style/energySankey.less');
 
@@ -13,7 +11,7 @@ const EMISSIONS_AXIS_MARGIN = 20;
 /** Padding between axes and their nodes */
 const AXIS_PADDING = 4;
 
-module.exports = function(multiSankeyWrapEl) {
+module.exports = function(multiSankeyWrapEl, initialLayoutData) {
   let margin = {
     top: 10,
     right: 40,
@@ -36,29 +34,19 @@ module.exports = function(multiSankeyWrapEl) {
     return `${formatNumber(d)} TWh`;
   };
 
-  let multiSankeyLayout = new MultiSankeyLayout({
-    width,
-    height,
-    nodePadding: 5,
-    nodeWidth: 10,
-  });
   let offscreenY = height + margin.top + margin.bottom;
 
-  let curEnergyAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.energy2014;
-  let curEmissionsAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014;
 
-  let allLayoutData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
-
-  window.msLayout = multiSankeyLayout;
-  window.msLayoutData = allLayoutData;
-
-  // Editor's Choice: don't show 'energy services', only waste energy
-  allLayoutData.energyLayout.links = allLayoutData.energyLayout.links.filter(l => l.target.id !== 'energyServices');
-  allLayoutData.energyLayout.nodes = allLayoutData.energyLayout.nodes.filter(n => n.id !== 'energyServices');
-
+  window.msLayoutData = initialLayoutData;
   let layoutData = {
-    links: allLayoutData.emissionsLayout.analysisLinks.concat(allLayoutData.energyLayout.links),
-    nodes: allLayoutData.emissionsLayout.analysisNodes.concat(allLayoutData.energyLayout.nodes),
+    links: initialLayoutData.emissionsLayout.analysisLinks.concat(
+      initialLayoutData.energyLayout.links
+        .filter(l => l.target.id !== 'energyServices') // Editor's Choice: don't show 'energy services', only waste energy
+    ),
+    nodes: initialLayoutData.emissionsLayout.analysisNodes.concat(
+      initialLayoutData.energyLayout.nodes
+        .filter(n => n.id !== 'energyServices') // Editor's Choice: don't show 'energy services', only waste energy
+    ),
   };
 
   // z-indexing in svg is done based on node order.  Sort things so they start with heaviest links on bottom
@@ -95,7 +83,7 @@ module.exports = function(multiSankeyWrapEl) {
 
 
   // Create emissions scale
-  let emissionsAnalysisNode = allLayoutData.emissionsLayout.analysisNodes[0];
+  let emissionsAnalysisNode = initialLayoutData.emissionsLayout.analysisNodes[0];
   let emissionsScale = d3.scaleLinear();
   let emissionsAxis = d3.axisRight(emissionsScale);
   let emissionsAxisWrap = svg.append('g')
@@ -211,7 +199,7 @@ module.exports = function(multiSankeyWrapEl) {
       .call(emissionsAxis);
   }
 
-  function _updateLayout(animate, newLayoutData) {
+  function _updateLayout(newLayoutData, animate) {
     // Pre-positioning: We want the 'analysis' nodes (energy and emissions sinks) to initially be offscreen.  Shown with
     // show/hide functions
     if (!emissionsAnalysisVisible) {
@@ -267,6 +255,10 @@ module.exports = function(multiSankeyWrapEl) {
     updateEmissionsScale(animate, newLayoutData);
   }
 
+  // Initial data render
+  _updateLayout(initialLayoutData, false);
+
+
   // Helper function to check relative percentages.  Because of interpolations and US-specific starting conditions,
   // not going to hit exact WEC report percentages.
   // function analyzeProducers(newData) {
@@ -296,16 +288,6 @@ module.exports = function(multiSankeyWrapEl) {
   //     .value()
   //   );
   // }
-
-  function updateLayout(animate) {
-    let newData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
-    // no need to d3 datajoin, it updates the data objects in place.  Just run layout against new numbers.
-    _updateLayout(animate, newData);
-    // analyzeProducers(newData);
-    return newData;
-  }
-
-  _updateLayout(false, allLayoutData); // skip recalculate layout on first update -- already did it
 
 
   /*
@@ -366,34 +348,12 @@ module.exports = function(multiSankeyWrapEl) {
   }
 
 
-  window.updateLayout = updateLayout;
-
   let controls = {};
 
-
-  controls.showLlnlYearData = function(year) {
-    let is2015 = parseInt(year, 10) === 2015;
-
-    curEnergyAccessor = is2015 ?
-      multiSankeyLayout.llnlSankeyPieces.accessors.energy2015 :
-      multiSankeyLayout.llnlSankeyPieces.accessors.energy2014;
-
-    curEmissionsAccessor = is2015 ?
-      l => emissionsInterpolator(l, multiSankeyLayout.llnlSankeyPieces.accessors.energy2015, 'TWh', 'MMT') :
-      multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014;
-
-    console.log(`Now showing ${is2015 ? '2015' : '2014'} energy.${
-      is2015 ? ' 2015 emissions are interpolated from 2014.' : ''
-    }`);
-    updateLayout(true);
-  };
-
-  controls.showWec2060 = function showWec2060(wecScenarioKey) {
-    curEnergyAccessor = l => wecWorldEnergyScenarios(l, wecScenarioKey);
-    curEmissionsAccessor = l => emissionsInterpolator(l, curEnergyAccessor, 'TWh', 'MMT');
-
-    console.log('Now showing 2060 energy, emissions interpolated via 2014 emitter efficiencies');
-    updateLayout(true);
+  controls.updateLayout = function updateLayout(newData, animate = true) {
+    // no need to d3 datajoin, it updates the data objects in place.  Just run layout against new numbers.
+    _updateLayout(newData, animate);
+    // analyzeProducers(newData);
   };
 
   controls.showEmissions = () => {
@@ -413,6 +373,5 @@ module.exports = function(multiSankeyWrapEl) {
     energyAnalysisVisible = true;
   };
 
-  console.log('Yo! try hitting toggleYearAndUpdate(), showEmissions(), or showEnergy() to see examples of transitions!');
   return controls;
 };

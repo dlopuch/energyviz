@@ -10,33 +10,27 @@ const SankeyChart = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    // Here we break react and just update the multiSankey d3 manually according to its own update rules.
-    let nextModel = nextProps.sankeyState.activeModelId;
+    // Here we hit the react escape hatch and let d3 update according to its own update rules.
 
-    setTimeout(() => {
-      switch (nextModel) {
-        case 'llnl2015':
-          this.multiSankey.showLlnlYearData(2015);
-          break;
-        case 'wecModernJazz':
-          this.multiSankey.showWec2060('modernJazz');
-          break;
-        case 'wecUnfinishedSymphony':
-          this.multiSankey.showWec2060('unfinishedSymphony');
-          break;
-        case 'wecHardRock':
-          this.multiSankey.showWec2060('hardRock');
-          break;
-        case 'llnl2014':
-        default:
-          this.multiSankey.showLlnlYearData(2014);
-          break;
-      };
-    });
+    if (nextProps.sankeyData !== this.props.sankeyData) {
+      setTimeout(() => {
+        this.multiSankeyControls.updateLayout(nextProps.sankeyData);
+      });
+    }
+
+    if (this.props.sinkMode !== undefined && nextProps.sinkMode !== this.props.sinkMode) {
+      setTimeout(() => {
+        if (nextProps.sinkMode === 'emissions') {
+          this.multiSankeyControls.showEmissions();
+        } else {
+          this.multiSankeyControls.showEnergy();
+        }
+      });
+    }
   },
 
   componentDidMount() {
-    this.multiSankey = multiSankey(ReactDOM.findDOMNode(this.refs.svgWrap));
+    this.multiSankeyControls = multiSankey(ReactDOM.findDOMNode(this.refs.svgWrap), this.props.sankeyData);
   },
 
   render() {

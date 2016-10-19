@@ -39,6 +39,12 @@ const SankeyUI = React.createClass({
             </div>
           ))}
         </div>
+        <div>
+          {this.props.sankeyState.sankeySinkMode === 'energy' ?
+            (<button onClick={this.props.onToggleEmissionsSinks}>Show Emissions</button>) :
+            (<button onClick={this.props.onToggleEnergySinks}>Show Energy Waste</button>)
+          }
+        </div>
       </div>
     );
   }
@@ -46,8 +52,16 @@ const SankeyUI = React.createClass({
 
 const SankeyContainer = (props) => (
   <div>
-    <SankeyUI sankeyState={props.sankeyState} onSelectNewModelId={props.onSelectNewModelId}> </SankeyUI>
-    <SankeyChart sankeyState={props.sankeyState}> </SankeyChart>
+    <SankeyUI
+      sankeyState={props.sankeyState}
+      onSelectNewModelId={props.onSelectNewModelId}
+      onToggleEmissionsSinks={props.onToggleEmissionsSinks}
+      onToggleEnergySinks={props.onToggleEnergySinks}
+    > </SankeyUI>
+    <SankeyChart
+      sankeyData={props.sankeyState.sankeyData}
+      sinkMode={props.sankeyState.sankeySinkMode}
+    > </SankeyChart>
   </div>
 );
 
@@ -59,7 +73,9 @@ module.exports = reactRedux.connect(
   },
   function mapDispatchToProps(dispatch) {
     return {
-      onSelectNewModelId: modelId => dispatch(sankeyReducer.actions.changeModel(modelId))
+      onSelectNewModelId: modelId => dispatch(sankeyReducer.actions.changeModel(modelId)),
+      onToggleEmissionsSinks: () => dispatch(sankeyReducer.actions.toggleEmissionsSinks()),
+      onToggleEnergySinks: () => dispatch(sankeyReducer.actions.toggleEnergySinks()),
     };
   }
 )(SankeyContainer);

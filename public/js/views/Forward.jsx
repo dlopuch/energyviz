@@ -6,30 +6,24 @@ module.exports = () => (
       <div className="col-md-8">
         <h2>A Visual Sketch: US Energy Composition Scenarios</h2>
         <p className="lead">
-          Growing populations demanding more energy, concerns about security of energy access, and sustainability of
-          the environment upon which we depend on for food and habitat will all conspire to change the makeup and
-          composition of our energy supply. This visualization is an informal sketch to better understand the
-          implications of these trends and the possible outcomes predicted by various models.
+          A growing population demanding more energy, concerns about security of energy access, and the sustainability of the environment upon which we depend on for food and habitat are converging trends that will change the makeup and composition of our energy supply. This visualization project is an informal, work-in-progress sketch to better understand the nature of these trends and the models that predict various outcomes and opportunities.
         </p>
         <p>
-          Modeling the makeup and effects of changes on an entire economy is complicated.  All models are simplifications, but simplifications can still reveal general trends and establish baselines from which more nuanced discussions can start or more precise models can be refined from.  However, if a model is sufficiently complex, it’s conclusions may be comprehendible only to a select highly-specialized group of experts, limiting public awareness of the problem or the opportunities inherit in possible interventions.
+          Modeling the makeup and effects of changes on an entire economy is complicated.  All models are simplifications, but simplifications can still reveal general trends and establish baselines from which more nuanced discussions can begin.  However, if a model is sufficiently complex, its conclusions may be comprehendible only to a limited highly-specialized group of experts, limiting public awareness of the problem or the opportunities inherit in possible interventions.
         </p>
         <p>
-          This informal project is an experiment in using interactive data visualization and simulation techniques to make complex models more approachable than a typical static report.  It is hoped a more intuitive understanding of the model’s predictions will be achieved by interacting with a live simulation of the model.
-        </p>
-        <p>
-          Project Stats:
+          This informal project is an experiment in using interactive data visualization and simulation techniques to make complex models more approachable.
         </p>
         <dl className="dl-horizontal">
+          <dt>Intended Audience</dt>
+          <dd>Visualization nerds interested in discussion how to present complex models, energy nerds interested in visualization discussions for their complex models</dd>
           <dt>Tech Stack</dt>
           <dd>d3, React, Redux, Bootstrap, Webpack</dd>
-          <dt>Sources</dt>
-          <dd>LLNL Flowcharts, WEC World Energy Scenarios 2016</dd>
-          <dt>Inspirations</dt>
-          <dd>BV's Technologist, d3-sankey</dd>
+          <dt>Source Data</dt>
+          <dd><a href="https://flowcharts.llnl.gov">LLNL Energy Flowcharts</a>, <a href="http://www.worldenergy.org/publications/2016/world-energy-scenarios-2016-the-grand-transition/">WEC World Energy Scenarios 2016</a></dd>
           <dt>Status</dt>
           <dd>Vastly incomplete work-in-progress with no formal verification.</dd>
-          <dd><strong>This is a fun visualization exercise applied to a complex problem</strong>.</dd>
+          <dd><strong>This is merely a fun visualization exercise applied to a complex problem</strong>.</dd>
         </dl>
 
 
@@ -38,7 +32,7 @@ module.exports = () => (
           Recently the UN-accredited global energy body, the World Energy Council, released a 138-page report describing effects of three possible public-policy paths on the makeup of the global energy supply, the ability to service the needs of a growing and industrializing global population, and the sustainability of the environment (including the ability to meet the goals set by the recent Paris climate talks).
         </p>
         <p>
-          The report shines with the eye-glazing-over rigor and uniform-color-palette polish one would expect from a UN body led by a team of Accenture consultants.
+          The report shines with the eyes-glazing-over rigor and uniform-color-palette polish one would expect from a UN body led by a team of Accenture consultants.
         </p>
         <p>
           The reporting in the general media, however, fails to communicate the main ideas.  <a href="https://www.theguardian.com/business/2016/oct/10/global-demand-for-energy-will-peak-in-2030-says-world-energy-council">A typical media publication summarizing the report</a>, for example, is a collection of decontextualized numbers plucked from the executive summary:
@@ -94,16 +88,21 @@ module.exports = () => (
       </div>
     </div>
     <div className="row">
+      <div className="col-md-6 col-md-offset-2">
+        <blockquote className="blockquote-reverse">
+          <footer>
+            Example decontextualized statistics from The Guardian's <a href="https://www.theguardian.com/business/2016/oct/10/global-demand-for-energy-will-peak-in-2030-says-world-energy-council">"Global demand for energy will peak in 2030, says World Energy Council"</a>
+          </footer>
+        </blockquote>
+      </div>
+    </div>
+    <div className="row">
       <div className="col-md-8">
         <p>
-          Obviously a press summary is not expected to contain all the nuance of a full 138 page UN report, but if the point of the report was to describe how three different policy directions could interact with various global trends to shape energy markets and economic growth, that was all lost in favor of decontextualized bullet points.  We were presented numbers without an understanding of where they came from or what needs to happen to achieve them.
+          A media summary is not expected to contain all the nuance of a full 138 page UN report, but if the point of the report was to describe how three different policy directions could interact with various global trends to shape energy markets and economic growth, that was all lost in favor of decontextualized bullet points.  We were presented numbers without an understanding of where they came from or what they predict in terms of economic change and development moving forward.
         </p>
         <p>
-          This visualization is an experiment in communicating small parts of these models better.
-        </p>
-        <h3>Experiment 1: Interactive Composition Flows</h3>
-        <p>
-          TODO: LLNL Sankey Flowcharts, interpolations, model simulation.  Multiple-unit sankey.
+          This visualization is an experiment trying to see if at least part of this model can be communicated better.
         </p>
       </div>
     </div>

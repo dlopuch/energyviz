@@ -2,6 +2,7 @@ const React = require('react');
 const reactRedux = require('react-redux');
 
 const SankeyChart = require('./SankeyChart.jsx');
+const SankeyForward = require('./SankeyForward.jsx');
 const SankeyUI = require('./SankeyUI.jsx');
 const sankeyReducer = require('../../redux/sankeyReducer');
 
@@ -9,6 +10,7 @@ require('../../style/sankeyUi.less');
 
 const SankeyContainer = (props) => (
   <div className="container-fluid">
+    <SankeyForward> </SankeyForward>
     <SankeyUI
       sankeyState={props.sankeyState}
       onSelectNewModelId={props.onSelectNewModelId}

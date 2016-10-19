@@ -44,7 +44,6 @@ module.exports = function(multiSankeyWrapEl) {
   });
   let offscreenY = height + margin.top + margin.bottom;
 
-  let is2014 = true;
   let curEnergyAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.energy2014;
   let curEmissionsAccessor = multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014;
 
@@ -270,39 +269,39 @@ module.exports = function(multiSankeyWrapEl) {
 
   // Helper function to check relative percentages.  Because of interpolations and US-specific starting conditions,
   // not going to hit exact WEC report percentages.
-  function analyzeProducers(newData) {
-    let sourceNodes = newData.energyLayout.nodes.filter(n => n.data.category === 'source');
-
-    let wecReportNodeOrder = {
-      coal: 1,
-      naturalGas: 2,
-      petroleum: 3,
-      solar: 4,
-      wind: 5,
-      geothermal: 6,
-      nuclear: 7,
-      hydro: 8,
-      biomass: 9,
-    };
-
-    let totalEnergy = d3.sum(sourceNodes, n => n.values.energy);
-    console.log('Primary Source breakdown:');
-    table(_(sourceNodes) // eslint-disable-line no-undef
-      .map(n => ({
-        nodeId: n.data.id,
-        valueTwh: n.values.energy,
-        percent: Math.round(n.values.energy / totalEnergy * 100),
-      }))
-      .sortBy(n => wecReportNodeOrder[n.nodeId])
-      .value()
-    );
-  }
+  // function analyzeProducers(newData) {
+  //   let sourceNodes = newData.energyLayout.nodes.filter(n => n.data.category === 'source');
+  //
+  //   let wecReportNodeOrder = {
+  //     coal: 1,
+  //     naturalGas: 2,
+  //     petroleum: 3,
+  //     solar: 4,
+  //     wind: 5,
+  //     geothermal: 6,
+  //     nuclear: 7,
+  //     hydro: 8,
+  //     biomass: 9,
+  //   };
+  //
+  //   let totalEnergy = d3.sum(sourceNodes, n => n.values.energy);
+  //   console.log('Primary Source breakdown:');
+  //   window.table(_(sourceNodes) // eslint-disable-line no-undef
+  //     .map(n => ({
+  //       nodeId: n.data.id,
+  //       valueTwh: n.values.energy,
+  //       percent: Math.round(n.values.energy / totalEnergy * 100),
+  //     }))
+  //     .sortBy(n => wecReportNodeOrder[n.nodeId])
+  //     .value()
+  //   );
+  // }
 
   function updateLayout(animate) {
     let newData = multiSankeyLayout.calculateLayout(curEnergyAccessor, curEmissionsAccessor);
     // no need to d3 datajoin, it updates the data objects in place.  Just run layout against new numbers.
     _updateLayout(animate, newData);
-    analyzeProducers(newData);
+    // analyzeProducers(newData);
     return newData;
   }
 
@@ -369,31 +368,27 @@ module.exports = function(multiSankeyWrapEl) {
 
   window.updateLayout = updateLayout;
 
-  window.toggleYearAndUpdate = function toggleYear() {
-    is2014 = !is2014;
+  let controls = {};
 
-    curEnergyAccessor = is2014 ?
-      multiSankeyLayout.llnlSankeyPieces.accessors.energy2014 :
-      multiSankeyLayout.llnlSankeyPieces.accessors.energy2015;
 
-    curEmissionsAccessor = is2014 ?
-      multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014 :
-      l => emissionsInterpolator(l, multiSankeyLayout.llnlSankeyPieces.accessors.energy2015, 'TWh', 'MMT');
+  controls.showLlnlYearData = function(year) {
+    let is2015 = parseInt(year, 10) === 2015;
 
-    console.log(`Now showing ${is2014 ? '2014' : '2015'} energy, 2015 emissions are interpolated from 2014.`);
+    curEnergyAccessor = is2015 ?
+      multiSankeyLayout.llnlSankeyPieces.accessors.energy2015 :
+      multiSankeyLayout.llnlSankeyPieces.accessors.energy2014;
+
+    curEmissionsAccessor = is2015 ?
+      l => emissionsInterpolator(l, multiSankeyLayout.llnlSankeyPieces.accessors.energy2015, 'TWh', 'MMT') :
+      multiSankeyLayout.llnlSankeyPieces.accessors.emissions2014;
+
+    console.log(`Now showing ${is2015 ? '2015' : '2014'} energy.${
+      is2015 ? ' 2015 emissions are interpolated from 2014.' : ''
+    }`);
     updateLayout(true);
   };
 
-  let isWec2060 = false;
-  window.toggleWec2060 = function toggleWec2060(wecScenarioKey) {
-    if (!wecScenarioKey || !isWec2060) {
-      isWec2060 = !isWec2060;
-    }
-
-    if (!isWec2060) {
-      return window.toggleYearAndUpdate();
-    }
-
+  controls.showWec2060 = function showWec2060(wecScenarioKey) {
     curEnergyAccessor = l => wecWorldEnergyScenarios(l, wecScenarioKey);
     curEmissionsAccessor = l => emissionsInterpolator(l, curEnergyAccessor, 'TWh', 'MMT');
 
@@ -401,7 +396,7 @@ module.exports = function(multiSankeyWrapEl) {
     updateLayout(true);
   };
 
-  window.showEmissions = () => {
+  controls.showEmissions = () => {
     hideNodesAndLinks(false, energyAnalysisNodeFilter);
     energyAnalysisVisible = false;
 
@@ -409,7 +404,7 @@ module.exports = function(multiSankeyWrapEl) {
     emissionsAnalysisVisible = true;
     updateEmissionsScale(true);
   };
-  window.showEnergy = () => {
+  controls.showEnergy = () => {
     hideNodesAndLinks(true, emissionsAnalysisNodeFilter);
     emissionsAnalysisVisible = false;
     updateEmissionsScale(true);
@@ -417,5 +412,7 @@ module.exports = function(multiSankeyWrapEl) {
     showNodesAndLinks(energyAnalysisNodeFilter);
     energyAnalysisVisible = true;
   };
+
   console.log('Yo! try hitting toggleYearAndUpdate(), showEmissions(), or showEnergy() to see examples of transitions!');
+  return controls;
 };

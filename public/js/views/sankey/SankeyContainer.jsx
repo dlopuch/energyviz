@@ -47,7 +47,7 @@ const SankeyUI = React.createClass({
 const SankeyContainer = (props) => (
   <div>
     <SankeyUI sankeyState={props.sankeyState} onSelectNewModelId={props.onSelectNewModelId}> </SankeyUI>
-    <SankeyChart sankeyData={props.sankeyState.sankeyData}> </SankeyChart>
+    <SankeyChart sankeyState={props.sankeyState}> </SankeyChart>
   </div>
 );
 

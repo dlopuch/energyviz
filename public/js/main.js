@@ -2,8 +2,8 @@
 // Webpack build has built-in less styling:
 require('./style.less');
 
-// const sankey = require('./sankey');
-// const multiSankey = require('./charts/multiSankey');
+require('./style/bootstrap.less');
+
 const reactApp = require('./reactApp.jsx');
 
 window._ = require('lodash');

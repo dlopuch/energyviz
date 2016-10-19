@@ -3,8 +3,6 @@ const d3Sankey = require('d3-sankey').sankey;
 
 const energyDatasets = require('./data/us-energy-consumption-emissions-parser');
 
-require('./style/energySankey.less');
-
 // preprocess:
 let energy = energyDatasets.getConsumption2014('TWh');
 energy.nodes = energy.nodes.filter(n => n.id !== 'energyServices');

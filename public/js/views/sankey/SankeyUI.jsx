@@ -15,31 +15,42 @@ module.exports = React.createClass({
     let currentActiveModelId = this.props.sankeyState.activeModelId;
     return (
       <div>
-        <span>Choose a model:</span>
-        <div>
-          {this.props.sankeyState.availableModels.map(model => (
-            <div key={model.id} className="sankey-ui-model-picker">
-              <button
-                className="sankey-ui-pick-model"
-                onClick={this.props.onSelectNewModelId.bind(this, model.id)}
-              >
-                {model.id === this.props.sankeyState.activeModelId ? `* ${model.name} *` : model.name}
-              </button>
-              <button
-                className="sankey-ui-prev-model"
-                onMouseDown={this.onPreviewModelId.bind(this, currentActiveModelId, model.id)}
-                onClick={this.onUnpreviewModelId}
-              >
-                Preview
-              </button>
+        <div className="row">
+          <div className="col-md-12">
+            <span>Choose a model:</span>
+            <div>
+              {this.props.sankeyState.availableModels.map(model => (
+                <div key={model.id} className="btn-group btn-group-sm sankey-ui-model-picker">
+                  <button
+                    className={`btn btn-default sankey-ui-pick-model ${model.id === this.props.sankeyState.activeModelId ?
+                      'btn-primary' :
+                      ''}`}
+                    onClick={this.props.onSelectNewModelId.bind(this, model.id)}
+                  >
+                    {model.name}
+                  </button>
+                  <button
+                    className={`btn btn-default ${model.id === this.props.sankeyState.activeModelId ? 'btn-primary' : ''}`}
+                    onMouseDown={this.onPreviewModelId.bind(this, currentActiveModelId, model.id)}
+                    onClick={this.onUnpreviewModelId}
+                  >
+                    <span className="glyphicon glyphicon-eye-open" title="Preview"> </span>
+                    <span style={{opacity: 0}}>.</span>
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
-        <div>
-          {this.props.sankeyState.sankeySinkMode === 'energy' ?
-            (<button onClick={this.props.onToggleEmissionsSinks}>Show Emissions</button>) :
-            (<button onClick={this.props.onToggleEnergySinks}>Show Energy Waste</button>)
-          }
+        <div className="row">
+          <div className="col-md-12">
+            <div className="text-right" style={{marginTop: 10, width: 940}}>
+              {this.props.sankeyState.sankeySinkMode === 'energy' ?
+                (<button className="btn btn-default btn-xs" onClick={this.props.onToggleEmissionsSinks}>Show Emissions</button>) :
+                (<button className="btn btn-default btn-xs" onClick={this.props.onToggleEnergySinks}>Show Energy Waste</button>)
+              }
+            </div>
+          </div>
         </div>
       </div>
     );

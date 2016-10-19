@@ -46,7 +46,10 @@ module.exports = {
       { test: /\.less$/, loader: "style!css!less" },
 
       // Needed to load graphics in less, eg Bootstrap
-      { test: /\.(png|woff|woff2|eot|ttf|svg)$/, loader: 'url-loader?limit=100000' }
+      { test: /\.(woff|woff2)$/,  loader: "url-loader?limit=10000&mimetype=application/font-woff" },
+      { test: /\.ttf$/,    loader: "file-loader" },
+      { test: /\.eot$/,    loader: "file-loader" },
+      { test: /\.svg$/,    loader: "file-loader" }
     ]
   },
   plugins: PLUGINS,

@@ -1,37 +1,29 @@
-# sketchpack
-Webpack frontend boilerplate for javascript sketching.  Includes:
+# A Visual Sketch: US Energy Composition Scenarios
 
-- npm workflow for dependencies
-- webpack for building your CommonJS or RequireJS files
-- ES6 transpilation via Babel
-- eslint with AirBNB style rules 
-- watch server to rebuild on change
-- sourcemaps to trace through your code
+This informal project is a series of experiments in using interactive 
+data visualization and simulation techniques to make complex models more 
+approachable, focusing on predictive models in the energy industry and
+their economic implications.
 
-This boilerplate also includes frameworks that need boilerplate webpack config:
-- React (with production minification and example react app)
-- LESS compiling for CSS that becomes maintainable
+| **Intended Audience** | Visualization nerds interested in discussion how to present complex models, energy nerds interested in visualization discussions for their complex models
+| **Tech Stack** | d3, React, Redux, Bootstrap, Webpack
+| **Source Data** |LLNL Energy Flowcharts, WEC World Energy Scenarios 2016
+| **Status** | Vastly incomplete work-in-progress with no formal verification.
 
-# To get started
-1. Fork me
-2. Change package.json to have your project settings
-3. Install webpack: `npm install -g webpack` (global to make webpack CLI available)
-4. Install dependencies: `npm install`
-5. Add some neat stuff to this project, eg `npm install --save lodash`
-6. Start up webpack watch server: `$ webpack-dev-server`
-7. Change files and make something awesome!
+This is merely a fun visualization exercise applied to a complex problem.
 
-# To release
-Release script minifies build and sets it up in the `gh-pages` branch for GitHub Pages release.
+[https://dlopuch.github.io/energyviz](https://dlopuch.github.io/energyviz)
 
-To setup, create the gh-pages branch: `git branch gh-pages`
+# List of Experiments
+1. [Interactive Energy Flow Sankey](https://dlopuch.github.io/energyviz#experiment1)
+  - A d3 sankey implementation that supports model-based data generation nodes
+  - Pluggable data models allow swapping of different data scenarios to see effects
+    of different data (and data scales) on a constant structure
+  - Also experiments with using multiple units on a single sankey to link
+    energy with emissions implications.
 
-To make a new release:
-1. `npm run release`
-2. Current checkout branch will have changed to `gh-pages`.
-3. (First time) Add any new files: `git status; git add xxx`
-4. Commit all changes: `git commit -am "new release"`
-
-# TODO:
-- Example less file
-- Production builds with minification
+## To Build
+1. Install webpack: `npm install -g webpack`
+1. Install dependencies: `npm install`
+1. Build with webpack watch server: `$ webpack-dev-server`
+1. Content served at [http://localhost:8080/](http://localhost:8080/)

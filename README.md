@@ -5,10 +5,12 @@ data visualization and simulation techniques to make complex models more
 approachable, focusing on predictive models in the energy industry and
 their economic implications.
 
-| **Intended Audience** | Visualization nerds interested in discussion how to present complex models, energy nerds interested in visualization discussions for their complex models
-| **Tech Stack** | d3, React, Redux, Bootstrap, Webpack
-| **Source Data** |LLNL Energy Flowcharts, WEC World Energy Scenarios 2016
-| **Status** | Vastly incomplete work-in-progress with no formal verification.
+| | Project Summary |
+| --- | --- |
+| **Intended Audience** | Visualization nerds interested in discussion how to present complex models, energy nerds interested in visualization discussions for their complex models |
+| **Tech Stack** | d3, React, Redux, Bootstrap, Webpack |
+| **Source Data** |LLNL Energy Flowcharts, WEC World Energy Scenarios 2016 |
+| **Status** | Vastly incomplete work-in-progress with no formal verification. |
 
 This is merely a fun visualization exercise applied to a complex problem.
 

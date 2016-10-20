@@ -1,6 +1,6 @@
 const React = require('react');
 
-module.exports = () => (
+module.exports = (props) => (
   <div className="row">
     <div className="col-md-8">
       <h3>Experiment 1: Interactive Composition Flows</h3>
@@ -43,7 +43,15 @@ module.exports = () => (
         <strong>A Model-based Sankey.</strong> This experiment presents a Sankey diagram that maintains a consistent structure but whose data values can scale by swapping out various models.  We can load data for five scenarios: <a href="https://flowcharts.llnl.gov/content/assets/images/charts/Energy/Energy_2014_United-States.png">LLNL’s 2014 US energy flow</a>, <a href="https://flowcharts.llnl.gov/content/assets/images/charts/Energy/Energy_2015_United-States.png">LLNL’s 2015 US energy flow</a>, and three energy interpolations based on the <a href="http://www.worldenergy.org/publications/2016/world-energy-scenarios-2016-the-grand-transition/">2016 WEC World Energy Scenarios report</a>. By making it easy to change the data rather than the structure of the Sankey diagram, the effects of the various scenario models can quickly be summarized and compared.
       </p>
       <p>
-        <strong>A Multi-Unit Sankey.</strong>  A Sankey diagram traditionally shows the absolute and relative amounts and flows of a single unit of quantity (eg with energy, it would typically show the number of <a href="https://en.wikipedia.org/wiki/Quad_(unit)">quads</a> or TWh from energy sources to sinks).  However, key questions addressed in these models involve the effects on CO2 <em>emissions</em> for various energy scenarios.  An innovation presented here is a portion of the Sankey diagram can change to a second unit, emissions in Million Metric Tons of CO2, with a click of a button.
+        <strong>A Multi-Unit Sankey.</strong>  A Sankey diagram traditionally shows the absolute and relative amounts and flows of a single unit of quantity (eg with energy, it would typically show the number of <a href="https://en.wikipedia.org/wiki/Quad_(unit)">quads</a> or TWh from energy sources to sinks).  However, key questions addressed in these models involve the effects on CO2 <em>emissions</em> for various energy scenarios.  An innovation presented here is a portion of the Sankey diagram can change to a second unit, emissions in Million Metric Tons of CO2, with a click of a button.&nbsp;
+        {props.sankeySinkMode === 'energy' ?
+          (<button className="btn btn-default btn-xs" onClick={props.onToggleEmissionsSinks}>
+            <span className="glyphicon glyphicon-globe"> </span>&nbsp;Show Emissions
+          </button>) :
+          (<button className="btn btn-default btn-xs" onClick={props.onToggleEnergySinks}>
+            <span className="glyphicon glyphicon-flash"> </span>&nbsp;Show Energy Waste
+          </button>)
+        }
         <strong>&nbsp;Thus, we can summarize <em>both</em> energy and emissions flow in the same diagram.</strong> The underlying model-based data generators also generate data for this second unit, so it too can be swapped out across various models.
       </p>
     </div>

@@ -10,7 +10,11 @@ require('../../style/sankeyUi.less');
 
 const SankeyContainer = (props) => (
   <div className="container-fluid">
-    <SankeyForward> </SankeyForward>
+    <SankeyForward
+      sankeySinkMode={props.sankeyState.sankeySinkMode}
+      onToggleEmissionsSinks={props.onToggleEmissionsSinks}
+      onToggleEnergySinks={props.onToggleEnergySinks}
+    > </SankeyForward>
     <SankeyUI
       sankeyState={props.sankeyState}
       onSelectNewModelId={props.onSelectNewModelId}

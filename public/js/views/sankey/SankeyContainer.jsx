@@ -40,7 +40,9 @@ const SankeyContainer = (props) => (
             haven't found a good way of interpolating electicity outputs yet).
           </li>
           <li>
-            Interpolations are a bit iffy. Method was to start with LLNL 2014 numbers, calculate growth rates in WEC reports
+            Interpolations are a bit iffy.
+            <a href="https://github.com/dlopuch/energyviz/blob/master/public/js/models/wecWorldEnergyScenarios.js">Method</a>
+            was to start with LLNL 2014 numbers, calculate growth rates in WEC reports
             and grow the 2014 numbers by that amount.  WEC predicted global trends, and since US didn't start with the same
             relative percentages, this resulted in different ending relative percentages of the various energy mixes.
           </li>
@@ -57,8 +59,8 @@ const SankeyContainer = (props) => (
             the WEC scenarios show the correct relative pattern of emissions, if maybe not quite at the right scales.
           </li>
           <li>
-            Nevertheless, the visualization has demonstrated benefits of loading different data models with vastly different
-            scales into a constant-structure sankey.  Followups could include:
+            Nevertheless, the visualization has demonstrated benefits of <a href="https://github.com/dlopuch/energyviz/blob/master/public/js/redux/sankeyReducer.js#L104">loading different data models</a>
+            with vastly different data scales into a constant-structure sankey.  Followups could include:
             <ul>
               <li>how to highlight specific shifts (eg how to callout "this scenario predicts huge growth in natural gas")</li>
               <li>a 'relative scale' to highlight how when absolute values are more-or-less same magnitude, how the

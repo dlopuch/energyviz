@@ -5,6 +5,7 @@ module.exports = () => (
     <div className="row">
       <div className="col-md-8">
         <h2>A Visual Sketch: US Energy Composition Scenarios</h2>
+        <small>By <a href="https://www.linkedin.com/in/daniel-lopuch-45a4447" target="_blank">Dan Lopuch</a> | <a href="https://twitter.com/floatrock" target="_blank">@floatrock</a></small>
         <p className="lead">
           A growing population demanding more energy, concerns about security of energy access, and the sustainability of the environment upon which we depend on for food and habitat are converging trends that will change the makeup and composition of our energy supply. This visualization project is an informal, work-in-progress sketch to better understand the nature of these trends and the models that predict various outcomes and opportunities.
         </p>
